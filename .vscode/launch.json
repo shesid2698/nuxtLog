@@ -1,0 +1,38 @@
+{
+    // 使用 IntelliSense 以得知可用的屬性。
+    // 暫留以檢視現有屬性的描述。
+    // 如需詳細資訊，請瀏覽: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "啟動網頁",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}"
+        },
+        {
+            "name": "啟動伺服器",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "dev"
+            ]
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Nuxt: 同時啟動伺服器與網頁",
+            "configurations": [
+                // 填入您上方定義的兩個 name 屬性
+                "啟動伺服器",  //先啟動server
+                "啟動網頁"  //再啟動瀏覽器
+            ],
+            // 讓其中一個失敗時，終止所有會話
+            "stopAll": true 
+        }
+    ]
+}

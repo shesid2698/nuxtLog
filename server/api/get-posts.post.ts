@@ -1,27 +1,45 @@
-import { serverSupabaseClient } from '#supabase/server'
+// server/api/get-posts.post.ts
+import { createClient } from '@supabase/supabase-js'
 
 export default defineEventHandler(async (event) => {
-  // 1. 初始化 Server 端的 Supabase Client
-  // 這個 client 會自動讀取前端傳來的 Cookie，所以它知道「現在是誰在請求」
-  // 因此，你在資料庫設定的 RLS (Row Level Security) 依然有效！
-  const client = await serverSupabaseClient(event)
+  // 1. 讀取環境變數
+  const myUrl = process.env.SUPABASE_URL
+  const myKey = process.env.SUPABASE_KEY // Anon Key
+  
+  // 2. 讀取 Header 裡的 Token
+  const authHeader = getRequestHeader(event, 'Authorization')
 
-  // 2. 執行資料庫查詢
-  const { data, error } = await client
+  if (!authHeader) {
+    throw createError({ statusCode: 401, statusMessage: '未授權：請帶上 Token' })
+  }
+
+  // 3. 【關鍵修改】直接建立一個「已登入」的 Client
+  // 我們透過 global.headers 強制把 Token 塞給這個 Client
+  // 這樣它發出的所有請求，都會以此身分進行，RLS 就會生效！
+  const authenticatedClient = createClient(myUrl, myKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${authHeader}`
+      }
+    },
+    auth: {
+      persistSession: false // Server 端不需要持久化 Session
+    }
+  })
+
+  // 5. 執行查詢 (使用這個帶有 Token 的 Client)
+  // RLS 規則 (auth.uid() = user.id) 在這裡會生效
+  const { data, error } = await authenticatedClient
     .from('posts')
     .select('*')
-    // 如果你有做關聯，也可以寫 .select('*, users(email)')
     .order('created_at', { ascending: false })
 
-  // 3. 錯誤處理 (回傳給前端)
   if (error) {
     throw createError({
       statusCode: 500,
       statusMessage: error.message,
     })
   }
-  console.log("success",data);
 
-  // 4. 回傳資料 (Nuxt 會自動轉成 JSON)
   return data
 })

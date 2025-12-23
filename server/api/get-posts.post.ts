@@ -3,9 +3,14 @@ import { createClient } from '@supabase/supabase-js'
 
 export default defineEventHandler(async (event) => {
   // 1. 讀取環境變數
-  const myUrl = process.env.SUPABASE_URL
-  const myKey = process.env.SUPABASE_KEY // Anon Key
-  
+  const myUrl: string = process.env.SUPABASE_URL!
+  const myKey: string = process.env.SUPABASE_KEY!// Anon Key
+
+  // 先檢查是否存在
+  if (!myUrl || !myKey) {
+    throw new Error('❌ 環境變數缺失，請檢查 .env 檔案')
+  }
+
   // 2. 讀取 Header 裡的 Token
   const authHeader = getRequestHeader(event, 'Authorization')
 

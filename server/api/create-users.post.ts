@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
     // 5. 回傳成功訊息
     return {
         success: true,
-        message: '註冊成功！Trigger 應該已經自動建立 Member 資料了。',
+        message: '註冊成功！Trigger 已經自動建立 Member 資料了。',
         user: data.user,
     }
 })

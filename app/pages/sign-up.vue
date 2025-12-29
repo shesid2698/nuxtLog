@@ -74,7 +74,7 @@ watchEffect(() => {
                         Up</button>
                 </div>
                 <div class="text-center text-Reddit text-18px text-[#57577B] mb-20px">Already got an account?
-                    <NuxtLink to="#" class="decoration-none"><span class="text-[#4865DB]">Log in.</span></NuxtLink>
+                    <NuxtLink to="/login" class="decoration-none"><span class="text-[#4865DB]">Log in.</span></NuxtLink>
                 </div>
                 <div class="text-center text-Reddit text-18px text-[#57577B] mb-20px">Or Sign in with</div>
                 <div class="w-8% mx-auto cursor-pointer" @click="SignInWithGoogle"><img src="/images/logo_G.svg.webp"

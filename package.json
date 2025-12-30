@@ -12,6 +12,7 @@
   "dependencies": {
     "@nuxt/eslint": "^1.10.0",
     "@nuxtjs/supabase": "^2.0.3",
+    "dayjs": "^1.11.19",
     "eslint": "^9.39.1",
     "googleapis": "^166.0.0",
     "nuxt": "^4.2.1",

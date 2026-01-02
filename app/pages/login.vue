@@ -14,7 +14,8 @@ const SignInWithGoogle = async () => {
     provider: 'google',
     options: {
       // 登入成功後，設定跳回 '/confirm'
-      redirectTo: `${url.origin}/confirm`,
+      // redirectTo: `${url.origin}/confirm`,
+      redirectTo: `https://nuxt-log-beryl.vercel.app/confirm`,
     },
   })
 

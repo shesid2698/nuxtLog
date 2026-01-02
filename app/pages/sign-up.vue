@@ -45,7 +45,7 @@ watchEffect(() => {
             <div
                 class="md:mt-48px mt-32px md:w-530px w-343px box-border login-container md:px-32px px-16px py-40px mx-auto rounded-16px">
                 <div class="text-Reddit text-32px font-bold text-[#21214D] mb-8px tracking-[-0.3px]">Create an
-                    account2
+                    account
                 </div>
                 <div class="text-[#57577B] text-18px text-Reddit mb-32px tracking-[-0.3px]">Join to track your daily
                     mood and sleep with ease.</div>

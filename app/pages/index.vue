@@ -113,10 +113,11 @@ onMounted(() => {
         </div>
         <!-- 右邊區域 -->
         <div>
-          <div class="bg-[#FFFFFF] xl:w-768px md:w-704px w-343px rounded-16px box-border p-32px border-1px border-solid border-[#E0E6FA]">
-            <div class="text-Reddit text-32px tracking-[-0.3px] text-bold text-[#21214D] mb-32px">Mood and sleep trends
+          <div
+            class="bg-[#FFFFFF] xl:w-768px md:w-704px w-343px rounded-16px box-border md:px-24px md:py-24px px-16px py-20px  border-1px border-solid border-[#E0E6FA]">
+            <div class="text-Reddit md:text-32px text-28px tracking-[-0.3px] text-bold text-[#21214D] mb-32px">Mood and sleep trends
             </div>
-            <div class="w-710px h-312px flex overflow-hidden">
+            <div class="h-312px flex overflow-hidden">
               <!-- 左邊 -->
               <div class="w-fit h-100% text-12px text-Reddit text-[#57577B]">
                 <div class="h-15% content-center"><img src="/images/sleep_icon.svg" class="w-9px mr-6px" alt="">9+ hours
@@ -148,93 +149,93 @@ onMounted(() => {
                   <div class="w-95% h-1px line my-0 mx-auto"></div>
                 </div>
                 <div class="absolute w-95% h-85% top-0 left-50% transform-translate-x-[-50%] flex items-end">
-                  <div class="w-100% mr-16px h-55.6% bg-[#FFC97C] box-border p-5px rounded-999px">
+                  <div class="!w-42px shrink-0 mr-16px h-55.6% bg-[#FFC97C] box-border p-5px rounded-999px">
                     <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_happy_white.svg" alt=""
                         class="block w-100%"></div>
                   </div>
-                  <div class="w-100% mr-16px h-38% bg-[#89E780] box-border p-5px rounded-999px">
+                  <div class="!w-42px shrink-0 mr-16px h-38% bg-[#89E780] box-border p-5px rounded-999px">
                     <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/happy_white.svg" alt=""
                         class="block w-100%"></div>
                   </div>
-                  <div class="w-100% mr-16px h-20.3% bg-[#89CAFF] box-border p-5px rounded-999px">
+                  <div class="!w-42px shrink-0 mr-16px h-20.3% bg-[#89CAFF] box-border p-5px rounded-999px">
                     <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/neutral_white.svg" alt=""
                         class="block w-100%"></div>
                   </div>
-                  <div class="w-100% mr-16px h-73.3% bg-[#B8B1FF] box-border p-5px rounded-999px">
+                  <div class="!w-42px shrink-0 mr-16px h-73.3% bg-[#B8B1FF] box-border p-5px rounded-999px">
                     <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/sad_white.svg" alt=""
                         class="block w-100%"></div>
                   </div>
-                  <div class="w-100% mr-16px h-91% bg-[#FF9B99] box-border p-5px rounded-999px">
+                  <div class="!w-42px shrink-0 mr-16px h-91% bg-[#FF9B99] box-border p-5px rounded-999px">
                     <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_sad_white.svg" alt=""
                         class="block w-100%"></div>
                   </div>
-                  <div class="w-100% mr-16px h-91% bg-blue box-border p-5px rounded-999px">
+                  <div class="!w-42px shrink-0 mr-16px h-91% bg-blue box-border p-5px rounded-999px">
                     <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_happy.svg" alt=""
                         class="block w-100%"></div>
                   </div>
-                  <div class="w-100% mr-16px h-91% bg-blue box-border p-5px rounded-999px">
+                  <div class="!w-42px shrink-0 mr-16px h-91% bg-blue box-border p-5px rounded-999px">
                     <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_happy.svg" alt=""
                         class="block w-100%"></div>
                   </div>
-                  <div class="w-100% mr-16px h-91% bg-blue box-border p-5px rounded-999px">
+                  <div class="!w-42px shrink-0 mr-16px h-91% bg-blue box-border p-5px rounded-999px">
                     <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_happy.svg" alt=""
                         class="block w-100%"></div>
                   </div>
-                  <div class="w-100% mr-16px h-91% bg-blue box-border p-5px rounded-999px">
+                  <div class="!w-42px shrink-0 mr-16px h-91% bg-blue box-border p-5px rounded-999px">
                     <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_happy.svg" alt=""
                         class="block w-100%"></div>
                   </div>
-                  <div class="w-100% mr-16px h-91% bg-blue box-border p-5px rounded-999px">
+                  <div class="!w-42px shrink-0 mr-16px h-91% bg-blue box-border p-5px rounded-999px">
                     <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_happy.svg" alt=""
                         class="block w-100%"></div>
                   </div>
-                  <div class="w-100% mr-16px h-91% bg-blue box-border p-5px rounded-999px">
+                  <div class="!w-42px shrink-0 mr-16px h-91% bg-blue box-border p-5px rounded-999px">
                     <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_happy.svg" alt=""
                         class="block w-100%"></div>
                   </div>
                 </div>
                 <div class="absolute w-95% h-15% bottom-0 left-50% transform-translate-x-[-50%] flex">
-                  <div class="w-100% mr-2% h-100% text-center content-center">
+                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
                     <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
                     <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
                   </div>
-                  <div class="w-100% mr-2% h-100% text-center content-center">
+                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
                     <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
                     <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
                   </div>
-                  <div class="w-100% mr-2% h-100% text-center content-center">
+                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
                     <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
                     <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
                   </div>
-                  <div class="w-100% mr-2% h-100% text-center content-center">
+                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
                     <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
                     <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
                   </div>
-                  <div class="w-100% mr-2% h-100% text-center content-center">
+                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
                     <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
                     <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
                   </div>
-                  <div class="w-100% mr-2% h-100% text-center content-center">
+                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
                     <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
                     <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
                   </div>
-                  <div class="w-100% mr-2% h-100% text-center content-center">
+                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
                     <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
                     <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
                   </div>
-                  <div class="w-100% mr-2% h-100% text-center content-center">
+                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
                     <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
                     <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
                   </div>
-                  <div class="w-100% mr-2% h-100% text-center content-center">
+                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
                     <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
                     <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
                   </div>
-                  <div class="w-100% mr-2% h-100% text-center content-center">
+                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
                     <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
                     <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
                   </div>
-                  <div class="w-100% mr-2% h-100% text-center content-center">
+                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
                     <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
                     <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
                   </div>

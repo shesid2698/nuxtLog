@@ -13,7 +13,7 @@ interface moodCategories {
   img: string
 }
 /**步驟一內容 */
-const Step1Content = ref<moodCategories[]>([
+const step1Content = ref<moodCategories[]>([
   {
     category: 1,
     text: "Very Happy",
@@ -46,108 +46,139 @@ interface feelCategories {
   text: string
 }
 /**步驟二內容 */
-const Step2Content = ref<feelCategories[]>([
-  {
-    category: 1,
-    text: "Joyful"
-  },
-  {
-    category: 2,
-    text: "Down"
-  },
-  {
-    category: 3,
-    text: "Anxious"
-  },
-  {
-    category: 4,
-    text: "Calm"
-  },
-  {
-    category: 5,
-    text: "Excited"
-  },
-  {
-    category: 6,
-    text: "Frustrated"
-  },
-  {
-    category: 7,
-    text: "Lonely"
-  },
-  {
-    category: 8,
-    text: "Grateful"
-  },
-  {
-    category: 9,
-    text: "Overwhelmed"
-  },
-  {
-    category: 10,
-    text: "Motivated"
-  },
-  {
-    category: 11,
-    text: "Irritable"
-  },
-  {
-    category: 12,
-    text: "Peaceful"
-  },
-  {
-    category: 13,
-    text: "Tired"
-  },
-  {
-    category: 14,
-    text: "Hopeful"
-  },
-  {
-    category: 15,
-    text: "Confident"
-  },
-  {
-    category: 16,
-    text: "Stressed"
-  },
-  {
-    category: 17,
-    text: "Content"
-  },
-  {
-    category: 18,
-    text: "Disappointed"
-  },
-  {
-    category: 19,
-    text: "Optimistic"
-  },
-  {
-    category: 20,
-    text: "Restless"
-  }
-])
-
+const step2Content = ref<feelCategories[]>(
+  [
+    {
+      category: 1,
+      text: "Joyful"
+    },
+    {
+      category: 2,
+      text: "Down"
+    },
+    {
+      category: 3,
+      text: "Anxious"
+    },
+    {
+      category: 4,
+      text: "Calm"
+    },
+    {
+      category: 5,
+      text: "Excited"
+    },
+    {
+      category: 6,
+      text: "Frustrated"
+    },
+    {
+      category: 7,
+      text: "Lonely"
+    },
+    {
+      category: 8,
+      text: "Grateful"
+    },
+    {
+      category: 9,
+      text: "Overwhelmed"
+    },
+    {
+      category: 10,
+      text: "Motivated"
+    },
+    {
+      category: 11,
+      text: "Irritable"
+    },
+    {
+      category: 12,
+      text: "Peaceful"
+    },
+    {
+      category: 13,
+      text: "Tired"
+    },
+    {
+      category: 14,
+      text: "Hopeful"
+    },
+    {
+      category: 15,
+      text: "Confident"
+    },
+    {
+      category: 16,
+      text: "Stressed"
+    },
+    {
+      category: 17,
+      text: "Content"
+    },
+    {
+      category: 18,
+      text: "Disappointed"
+    },
+    {
+      category: 19,
+      text: "Optimistic"
+    },
+    {
+      category: 20,
+      text: "Restless"
+    }
+  ]
+)
+/**步驟四interface */
+interface sleepCategories {
+  category: number,
+  text: string
+}
+/**步驟四內容 */
+const step4Content = ref<sleepCategories[]>(
+  [
+    {
+      category: 1,
+      text: "9+ hours"
+    },
+    {
+      category: 2,
+      text: "7-8 hours"
+    },
+    {
+      category: 3,
+      text: "5-6 hours"
+    },
+    {
+      category: 4,
+      text: "3-4 hours"
+    },
+    {
+      category: 5,
+      text: "0-2 hours"
+    },
+  ]
+)
 /**log interface */
 interface RequestData {
   /**心情種類 1=vary_happy;2=happy;3=neutral;4=sad;5=very_sad */
   moodCategory: number,
   feelCategories: number[],
   comment: string,
-  sleepAreaType: number,
+  sleepCategory: number,
   error: boolean
 }
-// 1. 定義初始值的工廠函數
-const getInitialData = (): RequestData => ({
+/**初始化model */
+const GetInitialData = (): RequestData => ({
   moodCategory: 0,
   feelCategories: [],
   comment: '',
-  sleepAreaType: 0,
+  sleepCategory: 0,
   error: false
 });
 /**log request */
-const logRequestData = reactive<RequestData>(getInitialData());
+const logRequestData = reactive<RequestData>(GetInitialData());
 // const session = useSupabaseSession();
 // const { data: posts, error } = await useFetch('/api/get-posts', {
 //   method: 'POST',
@@ -173,23 +204,46 @@ onMounted(() => {
 const CloseDialog = () => {
   isShowDialog.value = false;
   currentStep.value = 1;
-  Object.assign(logRequestData, getInitialData())
+  Object.assign(logRequestData, GetInitialData())
 }
-/**檢查第一步 */
-const CheckStep1 = () => {
-  if (logRequestData.moodCategory === 0) {
-    logRequestData.error = true;
-    return;
+
+/**
+ * 檢查步驟
+ * @param step 步驟
+ */
+const CheckStep = (step: number) => {
+  logRequestData.error = false;
+  switch (step) {
+    case 1:
+      if (logRequestData.moodCategory === 0) {
+        logRequestData.error = true;
+        return;
+      }
+      break;
+    case 2:
+      if (logRequestData.feelCategories.length === 0 || logRequestData.feelCategories.length > 3) {
+        logRequestData.error = true;
+        return;
+      }
+      break;
+    case 3:
+      if (logRequestData.comment.trim() === "") {
+        logRequestData.error = true;
+        return;
+      }
+      break;
+    case 4:
+      if (logRequestData.sleepCategory === 0) {
+        logRequestData.error = true;
+        return;
+      }
+      // 打API，如果成功就重置視窗與logRequestData
+      currentStep.value = 1;
+      Object.assign(logRequestData, GetInitialData());
+      return;
+      break;
   }
-  currentStep.value = 2;
-}
-/**檢查第二步 */
-const CheckStep2 = () => {
-  if (logRequestData.feelCategories.length === 0 || logRequestData.feelCategories.length > 3) {
-    logRequestData.error = true;
-    return;
-  }
-  currentStep.value = 3;
+  currentStep.value = step + 1;
 }
 </script>
 <template>
@@ -212,7 +266,7 @@ const CheckStep2 = () => {
         <template v-if="currentStep === 1">
           <div class="text-Reddit text-32px font-bold tracking-[-0.3px] text-[#21214D] mb-32px">How was your mood today?
           </div>
-          <label v-for="item in Step1Content"
+          <label v-for="item in step1Content"
             class="block px-20px py-12px box-border h-62px bg-[#ffffff] rounded-10px border-2px border-solid has-[:checked]:border-[#4865DB] border-[#E0E6FA] text-Reddit text-[#21214D] text-20px font-semibold cursor-pointer flex items-center mb-12px last-of-type:mb-32px">
             <input type="radio" :value="item.category" v-model="logRequestData.moodCategory" class="hidden">
             <span
@@ -228,7 +282,7 @@ const CheckStep2 = () => {
             continuing.</div>
           <div
             class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-pointer text-center"
-            @click="CheckStep1">
+            @click="CheckStep(1)">
             Continue</div>
         </template>
         <!-- 步驟二 -->
@@ -237,7 +291,7 @@ const CheckStep2 = () => {
           </div>
           <div class="mb-32px text-18px text-[#57577B] text-Reddit font-medium">Select up to three tags:</div>
           <div class="flex flex-wrap mb-32px">
-            <label v-for="item in Step2Content" :key="item.category" class="bg-[#FFFFFF] box-border px-16px py-12px border-2px border-solid rounded-10px text-18px text-[#21214D] tracking-[-0.3px] flex w-fit justify-center items-center cursor-pointer mr-16px mb-12px last-of-type:mr-0 transition-all
+            <label v-for="item in step2Content" :key="item.category" class="bg-[#FFFFFF] box-border px-16px py-12px border-2px border-solid rounded-10px text-18px text-[#21214D] tracking-[-0.3px] flex w-fit justify-center items-center cursor-pointer mr-16px mb-12px last-of-type:mr-0 transition-all
            border-[#E0E6FA] has-[:checked]:border-[#4865DB]">
               <input type="checkbox"
                 :disabled="logRequestData.feelCategories.length >= 3 && logRequestData.feelCategories.indexOf(item.category) === -1"
@@ -255,11 +309,59 @@ const CheckStep2 = () => {
           </div>
           <div v-if="logRequestData.error"
             class="flex items-center text-15px tracking-[-0.3px] text-[#E60013] text-Reddit mb-16px"><img
-              src="/images/info.svg" class="block mr-6.5px" alt="">You can only select a maximum of 3 tags.</div>
+              src="/images/info.svg" class="block mr-6.5px" alt="">You can only select a maximum of 3 tags.
+          </div>
           <div
             class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-pointer text-center"
-            @click="CheckStep2">
-            Continue</div>
+            @click="CheckStep(2)">
+            Continue
+          </div>
+        </template>
+        <!-- 步驟三 -->
+        <template v-else-if="currentStep === 3">
+          <div class="text-Reddit text-32px font-bold tracking-[-0.3px] text-[#21214D] mb-32px">Write about your day...
+          </div>
+          <textarea
+            class="w-100% h-150px rounded-10px bg-[#ffffff] border-1px border-solid border-[#9393B7] box-border outline-none resize-none px-16px py-12px text-18px text-Reddit text-[#57577B] font-medium font-italic mb-8px overflow-y-auto [&::-webkit-scrollbar]:w-6px [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#C7D3F7] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#9393B7]"
+            v-model="logRequestData.comment" maxlength="150" placeholder="Today, I felt…">
+          </textarea>
+          <div class="text-end text-Reddit text-13px font-semibold text-[#57577B] mb-32px">
+            {{ logRequestData.comment.length }} / 150</div>
+          <div v-if="logRequestData.error"
+            class="flex items-center text-15px tracking-[-0.3px] text-[#E60013] text-Reddit mb-16px"><img
+              src="/images/info.svg" class="block mr-6.5px" alt="">Please write a few words about your day before
+            continuing.
+          </div>
+          <div
+            class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-pointer text-center"
+            @click="CheckStep(3)">
+            Continue
+          </div>
+        </template>
+        <!-- 步驟四 -->
+        <template v-else-if="currentStep === 4">
+          <div class="text-Reddit text-32px font-bold tracking-[-0.3px] text-[#21214D] mb-32px">How many hours did you
+            sleep last night?
+          </div>
+          <label v-for="item in step4Content"
+            class="block px-20px py-12px box-border h-62px bg-[#ffffff] rounded-10px border-2px border-solid has-[:checked]:border-[#4865DB] border-[#E0E6FA] text-Reddit text-[#21214D] text-20px font-semibold cursor-pointer flex items-center mb-12px last-of-type:mb-32px">
+            <input type="radio" :value="item.category" v-model="logRequestData.sleepCategory" class="hidden">
+            <span
+              class="w-20px h-20px box-border block rounded-999px bg-#ffffff border-1.5px border-solid border-[#C7D3F7] mr-12px"></span>
+            <div class="flex-1">
+              <div class="w-fit h-fit">{{ item.text }}</div>
+            </div>
+          </label>
+          <div v-if="logRequestData.error"
+            class="flex items-center text-15px tracking-[-0.3px] text-[#E60013] text-Reddit mb-16px"><img
+              src="/images/info.svg" class="block mr-6.5px" alt="">Please select a option before
+            submit.
+          </div>
+          <div
+            class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-pointer text-center"
+            @click="CheckStep(4)">
+            Submit
+          </div>
         </template>
       </div>
     </div>

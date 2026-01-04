@@ -1,9 +1,44 @@
-<script setup>
+<script setup lang="ts">
+const user = useSupabaseUser();
+const session = useSupabaseSession();
+const name = ref<string>("");
+onMounted(async () => {
+  if (!user.value) {
+    await navigateTo('sign-up', {
+      external: true
+    })
+  }
+})
+/**更新會員資訊 */
+const UpdateUser = async () => {
+  try {
+    const client = useSupabaseClient(); // 取得客戶端
+    const resp = await $fetch('/api/update-users', {
+      method: 'post',
+      body: {
+        newName: name.value
+      },
+      headers: {
+        Authorization:`Bearer ${session?.value?.access_token}`
+      }
+    })
+    if(resp.status.code!==0)throw new Error(resp.status.message);
+    const { data, error } = await client.auth.refreshSession();
 
+    if (error) {
+      throw new Error(error.message);
+    }
+    await navigateTo('/',{
+      external:true
+    })
+  } catch (ex) {
+    console.error("UpdateUser error",ex);
+  }
+}
 </script>
 <template>
   <div id="main">
-    <form action="" @submit.prevent="Login">
+    <form action="" @submit.prevent="UpdateUser">
       <!-- title -->
       <div class="flex w-fit h-fit mt-80px items-center justify-between mx-auto">
         <div class="mr-16px"><img src="/images/Logo_icon.svg" class="block" height="100%" alt=""></div>
@@ -22,7 +57,7 @@
         <!-- 姓名input -->
         <div class="md:w-466px w-311px px-16px py-12px box-border input-container rounded-10px mb-24px">
           <input required type="text" class="w-100% text-Reddit text-18px border-none outline-none text-[#57577B]"
-            placeholder="Jane Appleseed" autocomplete="username" v-model="email">
+            placeholder="Jane Appleseed" autocomplete="username" v-model="name">
         </div>
 
         <div class="md:w-466px w-311px flex mb-32px">
@@ -32,9 +67,9 @@
             <div class="text-[18px] text-[#21214D] mb-6px">Upload Image</div>
             <div class="text-15px text-[#57577B] mb-16px">Max 250KB, PNG or JPEG</div>
             <label
-                class="text-Reddit text-18px font-medium text-[#21214D] box-border px-16px py-8px bg-[#ffffff] border-1px border-solid border-[#9393B7] rounded-8px w-fit block"><input
-                  type="file" class="hidden">
-                Upload</label>
+              class="text-Reddit text-18px font-medium text-[#21214D] box-border px-16px py-8px bg-[#ffffff] border-1px border-solid border-[#9393B7] rounded-8px w-fit block"><input
+                type="file" class="hidden">
+              Upload</label>
           </div>
         </div>
 

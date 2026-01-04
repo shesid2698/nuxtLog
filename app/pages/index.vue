@@ -2,8 +2,12 @@
 import dayjs from 'dayjs';
 import advancedFormat from 'dayjs/plugin/advancedFormat';
 dayjs.extend(advancedFormat);
-const user = useSupabaseUser()
+const user = useSupabaseUser();
+const session = useSupabaseSession();
+const name = ref<string>("");
 const isShowDialog = ref(false);
+const isShowProfile = ref(false);
+const isShowProfileDialog = ref(false);
 /**紀錄步驟 */
 const currentStep = ref(1);
 /**步驟一interface */
@@ -196,6 +200,9 @@ const logRequestData = reactive<RequestData>(GetInitialData());
 watchEffect(() => {
   if (!user.value) {
     return navigateTo("/sign-up")
+  }else{
+    name.value = user.value.user_metadata?.display_name;
+    console.log('user',user.value.user_metadata)
   }
 })
 onMounted(() => {
@@ -206,7 +213,15 @@ const CloseDialog = () => {
   currentStep.value = 1;
   Object.assign(logRequestData, GetInitialData())
 }
-
+/**關閉個人資料設定彈窗 */
+const CloseProfileDialog = () => {
+  isShowProfileDialog.value = false;
+}
+/**開啟個人資料設定彈窗 */
+const OpenProfileDialog = () => {
+  isShowProfileDialog.value = true;
+  isShowProfile.value = false;
+}
 /**
  * 檢查步驟
  * @param step 步驟
@@ -240,21 +255,61 @@ const CheckStep = (step: number) => {
       // 打API，如果成功就重置視窗與logRequestData
       currentStep.value = 1;
       Object.assign(logRequestData, GetInitialData());
+      isShowDialog.value = false;
       return;
       break;
   }
   currentStep.value = step + 1;
 }
+/**登出 */
+const Logout = async () => {
+  var resp = await $fetch('/api/logout', {
+    method: 'post'
+  });
+  if (resp.success) {
+    console.log("成功", resp.message);
+    reloadNuxtApp();
+  }
+}
+/**取得使用者頭像 */
+const GetProfilePic = computed(()=>{
+  return user?.value?.user_metadata?.avatar_url || '/images/none-user.svg';
+});
+const UpdateUser = async()=>{
+  try {
+    const client = useSupabaseClient(); // 取得客戶端
+    const resp = await $fetch('/api/update-users', {
+      method: 'post',
+      body: {
+        newName: name.value
+      },
+      headers: {
+        Authorization: `Bearer ${session?.value?.access_token}`
+      }
+    })
+    if (resp.status.code !== 0) throw new Error(resp.status.message);
+    const { data, error } = await client.auth.refreshSession();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+    await navigateTo('/', {
+      external: true
+    })
+  } catch (ex) {
+    console.error("UpdateUser error", ex);
+  }
+}
 </script>
 <template>
-  <div id="main">
+  <div id="main" @click="isShowProfile = false">
     <!-- dialog -->
     <div v-if="isShowDialog"
       class="absolute w-full min-h-full bg-[rgba(33,33,77,0.7)] top-0 left-0 flex justify-center pt-80px box-border z-999">
       <div class="md:w-600px w-335px h-fit dialog-container">
         <!-- 關閉鈕 -->
-        <div class="absolute top-30px right-30px h-15px w-fit cursor-pointer" @click="CloseDialog"><img
-            src="/images/close.svg" class="block h-100%" alt="">
+        <div class="absolute top-30px right-30px h-15px w-fit cursor-[url(/images/pointer.svg),_pointer]"
+          @click="CloseDialog"><img src="/images/close.svg" class="block h-100%" alt="">
         </div>
         <div class="text-Reddit text-40px font-bold text-[#21214D] tracking-[-0.3px] mb-32px">Log your mood</div>
         <!-- 進度條 -->
@@ -267,7 +322,7 @@ const CheckStep = (step: number) => {
           <div class="text-Reddit text-32px font-bold tracking-[-0.3px] text-[#21214D] mb-32px">How was your mood today?
           </div>
           <label v-for="item in step1Content"
-            class="block px-20px py-12px box-border h-62px bg-[#ffffff] rounded-10px border-2px border-solid has-[:checked]:border-[#4865DB] border-[#E0E6FA] text-Reddit text-[#21214D] text-20px font-semibold cursor-pointer flex items-center mb-12px last-of-type:mb-32px">
+            class="block px-20px py-12px box-border h-62px bg-[#ffffff] rounded-10px border-2px border-solid has-[:checked]:border-[#4865DB] border-[#E0E6FA] text-Reddit text-[#21214D] text-20px font-semibold cursor-[url(/images/pointer.svg),_pointer] flex items-center mb-12px last-of-type:mb-32px">
             <input type="radio" :value="item.category" v-model="logRequestData.moodCategory" class="hidden">
             <span
               class="w-20px h-20px box-border block rounded-999px bg-#ffffff border-1.5px border-solid border-[#C7D3F7] mr-12px"></span>
@@ -281,7 +336,7 @@ const CheckStep = (step: number) => {
               src="/images/info.svg" class="block mr-6.5px" alt="">Please select a mood before
             continuing.</div>
           <div
-            class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-pointer text-center"
+            class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-[url(/images/pointer.svg),_pointer] text-center"
             @click="CheckStep(1)">
             Continue</div>
         </template>
@@ -291,7 +346,7 @@ const CheckStep = (step: number) => {
           </div>
           <div class="mb-32px text-18px text-[#57577B] text-Reddit font-medium">Select up to three tags:</div>
           <div class="flex flex-wrap mb-32px">
-            <label v-for="item in step2Content" :key="item.category" class="bg-[#FFFFFF] box-border px-16px py-12px border-2px border-solid rounded-10px text-18px text-[#21214D] tracking-[-0.3px] flex w-fit justify-center items-center cursor-pointer mr-16px mb-12px last-of-type:mr-0 transition-all
+            <label v-for="item in step2Content" :key="item.category" class="bg-[#FFFFFF] box-border px-16px py-12px border-2px border-solid rounded-10px text-18px text-[#21214D] tracking-[-0.3px] flex w-fit justify-center items-center cursor-[url(/images/pointer.svg),_pointer] mr-16px mb-12px last-of-type:mr-0 transition-all
            border-[#E0E6FA] has-[:checked]:border-[#4865DB]">
               <input type="checkbox"
                 :disabled="logRequestData.feelCategories.length >= 3 && logRequestData.feelCategories.indexOf(item.category) === -1"
@@ -312,7 +367,7 @@ const CheckStep = (step: number) => {
               src="/images/info.svg" class="block mr-6.5px" alt="">You can only select a maximum of 3 tags.
           </div>
           <div
-            class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-pointer text-center"
+            class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-[url(/images/pointer.svg),_pointer] text-center"
             @click="CheckStep(2)">
             Continue
           </div>
@@ -333,7 +388,7 @@ const CheckStep = (step: number) => {
             continuing.
           </div>
           <div
-            class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-pointer text-center"
+            class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-[url(/images/pointer.svg),_pointer] text-center"
             @click="CheckStep(3)">
             Continue
           </div>
@@ -344,7 +399,7 @@ const CheckStep = (step: number) => {
             sleep last night?
           </div>
           <label v-for="item in step4Content"
-            class="block px-20px py-12px box-border h-62px bg-[#ffffff] rounded-10px border-2px border-solid has-[:checked]:border-[#4865DB] border-[#E0E6FA] text-Reddit text-[#21214D] text-20px font-semibold cursor-pointer flex items-center mb-12px last-of-type:mb-32px">
+            class="block px-20px py-12px box-border h-62px bg-[#ffffff] rounded-10px border-2px border-solid has-[:checked]:border-[#4865DB] border-[#E0E6FA] text-Reddit text-[#21214D] text-20px font-semibold cursor-[url(/images/pointer.svg),_pointer] flex items-center mb-12px last-of-type:mb-32px">
             <input type="radio" :value="item.category" v-model="logRequestData.sleepCategory" class="hidden">
             <span
               class="w-20px h-20px box-border block rounded-999px bg-#ffffff border-1.5px border-solid border-[#C7D3F7] mr-12px"></span>
@@ -358,11 +413,48 @@ const CheckStep = (step: number) => {
             submit.
           </div>
           <div
-            class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-pointer text-center"
+            class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-[url(/images/pointer.svg),_pointer] text-center"
             @click="CheckStep(4)">
             Submit
           </div>
         </template>
+      </div>
+    </div>
+    <!-- profile dialog -->
+    <div v-if="isShowProfileDialog"
+      class="absolute w-full min-h-full bg-[rgba(33,33,77,0.7)] top-0 left-0 flex justify-center pt-80px box-border z-999">
+      <div class="md:w-600px w-335px h-fit dialog-container">
+        <!-- 關閉鈕 -->
+        <div class="absolute top-30px right-30px h-15px w-fit cursor-[url(/images/pointer.svg),_pointer]"
+          @click="CloseProfileDialog"><img src="/images/close.svg" class="block h-100%" alt="">
+        </div>
+
+        <div class="text-Reddit text-32px font-bold text-[#21214D] tracking-[-0.3px] mb-32px mb-8px">Update your profile
+        </div>
+        <div class="text-Reddit text-18px tracking-[-0.3px] text-[#57577B] mb-32px">Personalize your account with your
+          name
+          and photo.</div>
+        <div class="text-Reddit text-18px tracking-[-0.3px] text-[#21214D] mb-8px">Name</div>
+        <input type="text"
+          class="block w-100% box-border px-16px py-12px rounded-10px bg-[#FFFFFF] border-1px border-solid border-[#57577B] outline-none text-18px tracking-[-0.3px] text-Reddit text-[#21214D] mb-24px"
+          v-model="name">
+        <div class="flex items-start mb-32px">
+          <div class="w-fit mr-20px">
+            <img :src="GetProfilePic" width="68" height="68" class="rounded-999px" alt="">
+          </div>
+          <div>
+            <div class="text-Reddit text-18px tracking-[-0.3px] text-[#21214D] mb-6px">Upload Image</div>
+            <div class="text-Reddit text-15px tracking-[-0.3px] text-[#57577B] mb-16px">Max 250KB, PNG or JPEG</div>
+            <label               class="box-border px-16px py-8px rounded-8px bg-white border-1px border-solid border-[#9393B7] w-fit text-Reddit text-18px text-[#21214D] cursor-[url(/images/pointer.svg),_pointer]"
+              >Upload<input
+                type="file" class="hidden"></label>
+          </div>
+        </div>
+        <div
+          class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-[url(/images/pointer.svg),_pointer] text-center"
+          @click="UpdateUser">
+          Save changes
+        </div>
       </div>
     </div>
     <div class="xl:w-1170px md:w-704px w-343px box-border pt-40px">
@@ -372,12 +464,35 @@ const CheckStep = (step: number) => {
           <div class="mr-16px"><img src="/images/Logo_icon.svg" class="block" width="40" alt=""></div>
           <div class="text-Reddit font-bold text-21px text-[#21214D] tracking-[-0.8px]">Mood tracker</div>
         </div>
+        <!-- 個人資料 -->
         <ClientOnly>
-          <div v-if="user && user.user_metadata" class="flex items-center">
+          <div v-if="user && user.user_metadata"
+            class="flex items-center relative cursor-[url(/images/pointer.svg),_pointer]" @click.stop
+            @click="isShowProfile = !isShowProfile">
             <div class="rounded-100% overflow-hidden mr-[8.75px]">
               <img :src="user.user_metadata.avatar_url" class="block" width="40" height="40" alt="">
             </div>
             <div><img src="/images/down.svg" width="10" alt=""></img></div>
+            <!-- 個人資料選單 -->
+            <div v-if="isShowProfile === true" @click.stop
+              class="absolute bg-white shadow-[0_5px_8px_0_rgba(33,33,77,0.16)] md:w-200px w-343px box-border px-16px py-12px rounded-8px top-100% right-0 cursor-default">
+              <div class="text-Reddit text-18px text-[#21214D] font-medium mb-2px">{{ user.user_metadata.display_name }}</div>
+              <div class="text-Reddit text-15px tracking-[-0.3px] text-[#9393B7] mb-12px">{{ user.user_metadata.email }}
+              </div>
+              <div class="h-1px bg-[#E0E6FA] mb-12px"></div>
+              <!-- 設定 -->
+              <div
+                class="flex w-fit items-center text-15px text-Reddit tracking-[-0.3px] text-[#21214D] mb-12px cursor-[url(/images/pointer.svg),_pointer]"
+                @click="OpenProfileDialog">
+                <img src="/images/setting.svg" alt="" class="mr-10px">Settings
+              </div>
+              <!-- 登出 -->
+              <div
+                class="flex w-fit items-center text-15px text-Reddit tracking-[-0.3px] text-[#21214D] cursor-[url(/images/pointer.svg),_pointer]"
+                @click="Logout">
+                <img src="/images/sign-out.svg" alt="" class="mr-10px">Logout
+              </div>
+            </div>
           </div>
         </ClientOnly>
       </div>
@@ -395,9 +510,10 @@ const CheckStep = (step: number) => {
         }}
         </div>
         <div
-          class="box-border px-32px py-16px bg-[#4865DB] text-white w-fit mx-auto rounded-10px text-20px font-semibold text-Reddit cursor-pointer"
+          class="box-border px-32px py-16px bg-[#4865DB] text-white w-fit mx-auto rounded-10px text-20px font-semibold text-Reddit cursor-[url(/images/pointer.svg),_pointer]"
           @click="isShowDialog = true">
-          Log today's mood</div>
+          Log today's mood
+        </div>
       </div>
       <div class="flex xl:flex-row flex-col xl:justify-center justify-normal xl:items-start items-center">
         <!-- 左邊區域 -->

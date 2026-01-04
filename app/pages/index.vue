@@ -4,6 +4,150 @@ import advancedFormat from 'dayjs/plugin/advancedFormat';
 dayjs.extend(advancedFormat);
 const user = useSupabaseUser()
 const isShowDialog = ref(false);
+/**紀錄步驟 */
+const currentStep = ref(1);
+/**步驟一interface */
+interface moodCategories {
+  category: number,
+  text: string,
+  img: string
+}
+/**步驟一內容 */
+const Step1Content = ref<moodCategories[]>([
+  {
+    category: 1,
+    text: "Very Happy",
+    img: '/images/very_happy.svg'
+  },
+  {
+    category: 2,
+    text: "Happy",
+    img: '/images/happy.svg'
+  },
+  {
+    category: 3,
+    text: "Neutral",
+    img: '/images/neutral.svg'
+  },
+  {
+    category: 4,
+    text: "Sad",
+    img: '/images/sad.svg'
+  },
+  {
+    category: 5,
+    text: "Very Sad",
+    img: '/images/very_sad.svg'
+  }
+])
+/**步驟二interface */
+interface feelCategories {
+  category: number,
+  text: string
+}
+/**步驟二內容 */
+const Step2Content = ref<feelCategories[]>([
+  {
+    category: 1,
+    text: "Joyful"
+  },
+  {
+    category: 2,
+    text: "Down"
+  },
+  {
+    category: 3,
+    text: "Anxious"
+  },
+  {
+    category: 4,
+    text: "Calm"
+  },
+  {
+    category: 5,
+    text: "Excited"
+  },
+  {
+    category: 6,
+    text: "Frustrated"
+  },
+  {
+    category: 7,
+    text: "Lonely"
+  },
+  {
+    category: 8,
+    text: "Grateful"
+  },
+  {
+    category: 9,
+    text: "Overwhelmed"
+  },
+  {
+    category: 10,
+    text: "Motivated"
+  },
+  {
+    category: 11,
+    text: "Irritable"
+  },
+  {
+    category: 12,
+    text: "Peaceful"
+  },
+  {
+    category: 13,
+    text: "Tired"
+  },
+  {
+    category: 14,
+    text: "Hopeful"
+  },
+  {
+    category: 15,
+    text: "Confident"
+  },
+  {
+    category: 16,
+    text: "Stressed"
+  },
+  {
+    category: 17,
+    text: "Content"
+  },
+  {
+    category: 18,
+    text: "Disappointed"
+  },
+  {
+    category: 19,
+    text: "Optimistic"
+  },
+  {
+    category: 20,
+    text: "Restless"
+  }
+])
+
+/**log interface */
+interface RequestData {
+  /**心情種類 1=vary_happy;2=happy;3=neutral;4=sad;5=very_sad */
+  moodCategory: number,
+  feelCategories: number[],
+  comment: string,
+  sleepAreaType: number,
+  error: boolean
+}
+// 1. 定義初始值的工廠函數
+const getInitialData = (): RequestData => ({
+  moodCategory: 0,
+  feelCategories: [],
+  comment: '',
+  sleepAreaType: 0,
+  error: false
+});
+/**log request */
+const logRequestData = reactive<RequestData>(getInitialData());
 // const session = useSupabaseSession();
 // const { data: posts, error } = await useFetch('/api/get-posts', {
 //   method: 'POST',
@@ -25,18 +169,98 @@ watchEffect(() => {
 })
 onMounted(() => {
 })
-
+/**關閉Dialog，並重置資料 */
+const CloseDialog = () => {
+  isShowDialog.value = false;
+  currentStep.value = 1;
+  Object.assign(logRequestData, getInitialData())
+}
+/**檢查第一步 */
+const CheckStep1 = () => {
+  if (logRequestData.moodCategory === 0) {
+    logRequestData.error = true;
+    return;
+  }
+  currentStep.value = 2;
+}
+/**檢查第二步 */
+const CheckStep2 = () => {
+  if (logRequestData.feelCategories.length === 0 || logRequestData.feelCategories.length > 3) {
+    logRequestData.error = true;
+    return;
+  }
+  currentStep.value = 3;
+}
 </script>
 <template>
   <div id="main">
+    <!-- dialog -->
     <div v-if="isShowDialog"
-      class="absolute w-full h-full bg-[rgba(33,33,77,0.7)] top-0 left-0 flex justify-center pt-80px box-border z-999">
-      <div class="w-600px h-747px dialog-container">
+      class="absolute w-full min-h-full bg-[rgba(33,33,77,0.7)] top-0 left-0 flex justify-center pt-80px box-border z-999">
+      <div class="md:w-600px w-335px h-fit dialog-container">
         <!-- 關閉鈕 -->
-        <div class="absolute top-30px right-30px h-15px w-fit cursor-pointer" @click="isShowDialog = false"><img
+        <div class="absolute top-30px right-30px h-15px w-fit cursor-pointer" @click="CloseDialog"><img
             src="/images/close.svg" class="block h-100%" alt="">
         </div>
-        <div class="text-Reddit text-40px font-bold text-[#21214D] tracking-[-0.3px]">Log your mood</div>
+        <div class="text-Reddit text-40px font-bold text-[#21214D] tracking-[-0.3px] mb-32px">Log your mood</div>
+        <!-- 進度條 -->
+        <div class="flex mb-32px">
+          <div v-for="index in 4" :key="index" class="mr-16px h-6px rounded-999px flex-1 last:mr-0 bg-[#C7D3F7]"
+            :class="{ '!bg-[#4865DB]': currentStep >= index }"></div>
+        </div>
+        <!-- 步驟一 -->
+        <template v-if="currentStep === 1">
+          <div class="text-Reddit text-32px font-bold tracking-[-0.3px] text-[#21214D] mb-32px">How was your mood today?
+          </div>
+          <label v-for="item in Step1Content"
+            class="block px-20px py-12px box-border h-62px bg-[#ffffff] rounded-10px border-2px border-solid has-[:checked]:border-[#4865DB] border-[#E0E6FA] text-Reddit text-[#21214D] text-20px font-semibold cursor-pointer flex items-center mb-12px last-of-type:mb-32px">
+            <input type="radio" :value="item.category" v-model="logRequestData.moodCategory" class="hidden">
+            <span
+              class="w-20px h-20px box-border block rounded-999px bg-#ffffff border-1.5px border-solid border-[#C7D3F7] mr-12px"></span>
+            <div class="flex-1 flex justify-between items-center">
+              <div class="w-fit h-fit">{{ item.text }}</div>
+              <div class="w-fit h-fit"><img :src="item.img" alt="" class="block" width="38"></div>
+            </div>
+          </label>
+          <div v-if="logRequestData.error"
+            class="flex items-center text-15px tracking-[-0.3px] text-[#E60013] text-Reddit mb-16px"><img
+              src="/images/info.svg" class="block mr-6.5px" alt="">Please select a mood before
+            continuing.</div>
+          <div
+            class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-pointer text-center"
+            @click="CheckStep1">
+            Continue</div>
+        </template>
+        <!-- 步驟二 -->
+        <template v-else-if="currentStep === 2">
+          <div class="text-Reddit text-32px font-bold tracking-[-0.3px] text-[#21214D] mb-6px">How did you feel?
+          </div>
+          <div class="mb-32px text-18px text-[#57577B] text-Reddit font-medium">Select up to three tags:</div>
+          <div class="flex flex-wrap mb-32px">
+            <label v-for="item in Step2Content" :key="item.category" class="bg-[#FFFFFF] box-border px-16px py-12px border-2px border-solid rounded-10px text-18px text-[#21214D] tracking-[-0.3px] flex w-fit justify-center items-center cursor-pointer mr-16px mb-12px last-of-type:mr-0 transition-all
+           border-[#E0E6FA] has-[:checked]:border-[#4865DB]">
+              <input type="checkbox"
+                :disabled="logRequestData.feelCategories.length >= 3 && logRequestData.feelCategories.indexOf(item.category) === -1"
+                :value="item.category" v-model="logRequestData.feelCategories" class="hidden peer">
+              <span class="w-16px h-16px border-1.5px border-solid border-[#C7D3F7] rounded-4px bg-white mr-8px flex items-center justify-center transition-all flex-shrink-0
+                 peer-checked:bg-[#4865DB] peer-checked:border-[#4865DB]">
+                <svg v-show="logRequestData.feelCategories.includes(item.category)"
+                  class="w-14px h-14px text-white block" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <span class="leading-none text-Reddit text-18px tracking-[-0.3px] text-[#21214D]">{{ item.text }}</span>
+            </label>
+          </div>
+          <div v-if="logRequestData.error"
+            class="flex items-center text-15px tracking-[-0.3px] text-[#E60013] text-Reddit mb-16px"><img
+              src="/images/info.svg" class="block mr-6.5px" alt="">You can only select a maximum of 3 tags.</div>
+          <div
+            class="box-border px-32px py-16px bg-[#4865DB] text-white text-24px text-Reddit font-semibold rounded-10px cursor-pointer text-center"
+            @click="CheckStep2">
+            Continue</div>
+        </template>
       </div>
     </div>
     <div class="xl:w-1170px md:w-704px w-343px box-border pt-40px">
@@ -56,6 +280,7 @@ onMounted(() => {
         </ClientOnly>
       </div>
     </div>
+    <!-- 主內容 -->
     <div class="w-100%">
       <div class="xl:w-656px md:w-704px w-343px mx-auto text-center mb-64px">
         <div v-if="user && user.user_metadata"
@@ -115,7 +340,8 @@ onMounted(() => {
         <div>
           <div
             class="bg-[#FFFFFF] xl:w-768px md:w-704px w-343px rounded-16px box-border md:px-24px md:py-24px px-16px py-20px  border-1px border-solid border-[#E0E6FA]">
-            <div class="text-Reddit md:text-32px text-28px tracking-[-0.3px] text-bold text-[#21214D] mb-32px">Mood and sleep trends
+            <div class="text-Reddit md:text-32px text-28px tracking-[-0.3px] text-bold text-[#21214D] mb-32px">Mood and
+              sleep trends
             </div>
             <div class="h-312px flex overflow-hidden">
               <!-- 左邊 -->
@@ -132,7 +358,7 @@ onMounted(() => {
                   hours</div>
               </div>
               <!-- 右邊 -->
-              <div class="xl:w-626px md:w-572px w-227px h-100% relative overflow-x-auto">
+              <div class="flex-1 h-100% relative overflow-x-auto">
                 <div class="h-15% content-center">
                   <div class="w-95% h-1px line my-0 mx-auto"></div>
                 </div>
@@ -275,5 +501,9 @@ onMounted(() => {
   box-sizing: border-box;
   border-radius: 16px;
   background: linear-gradient(to bottom, #F5F5FF 73%, #E0E0FF 100%);
+}
+
+label>input[type="radio"]:checked~span {
+  border: 6px solid #4865DB !important;
 }
 </style>

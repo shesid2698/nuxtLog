@@ -177,6 +177,16 @@ interface RequestData {
   sleepCategory: number,
   error: boolean
 }
+/**log response interface */
+interface ResponseData {
+  id: number,
+  user_id: string,
+  mood_category: number,
+  feel_category: string,
+  about: string,
+  sleep_category: number,
+  created_at: string
+}
 /**初始化model */
 const GetInitialData = (): RequestData => ({
   moodCategory: 0,
@@ -187,25 +197,27 @@ const GetInitialData = (): RequestData => ({
 });
 /**log request */
 const logRequestData = reactive<RequestData>(GetInitialData());
-// const session = useSupabaseSession();
-// const { data: posts, error } = await useFetch('/api/get-posts', {
-//   method: 'POST',
-//   headers: {
-//     Authorization: session.value?.access_token ? session.value.access_token : ''
-//   },
-
-//   // 只有 user 存在時才發請求
-//   immediate: !!user.value,
-
-//   // 當 user 或 session 改變時，自動重新發送 API
-//   watch: [user, session]
-// })
-// 一開始會跑一次，之後如果 user 狀態改變也會跑
-watchEffect(() => {
+/**所有log資料 */
+const allLogData = ref<ResponseData[]>([]);
+watchEffect(async () => {
   if (!user.value) {
     return navigateTo("/sign-up")
   } else {
     name.value = user.value.user_metadata?.display_name;
+    if (session?.value) {
+      try {
+        const resp = await $fetch('/api/get-mood', {
+          method: 'post',
+          headers: {
+            Authorization: `Bearer ${session?.value?.access_token}`
+          }
+        });
+        if (resp.status.code !== 0) throw new Error(resp.status.message);
+        allLogData.value = resp.data;
+      } catch (ex) {
+        console.error("Get mood error", ex);
+      }
+    }
   }
 })
 onMounted(() => {
@@ -229,7 +241,7 @@ const OpenProfileDialog = () => {
  * 檢查步驟
  * @param step 步驟
  */
-const CheckStep = (step: number) => {
+const CheckStep = async (step: number) => {
   logRequestData.error = false;
   switch (step) {
     case 1:
@@ -255,11 +267,29 @@ const CheckStep = (step: number) => {
         logRequestData.error = true;
         return;
       }
-      // 打API，如果成功就重置視窗與logRequestData
-      currentStep.value = 1;
-      Object.assign(logRequestData, GetInitialData());
-      isShowDialog.value = false;
-      return;
+      try {
+        const resp = await $fetch('/api/create-mood', {
+          method: 'post',
+          body: {
+            moodCategory: logRequestData.moodCategory,
+            feelCategories: logRequestData.feelCategories,
+            comment: logRequestData.comment,
+            sleepCategory: logRequestData.sleepCategory,
+          },
+          headers: {
+            Authorization: `Bearer ${session?.value?.access_token}`
+          }
+        });
+        if (resp.status.code !== 0) throw new Error(resp.status.message);
+        currentStep.value = 1;
+        Object.assign(logRequestData, GetInitialData());
+        isShowDialog.value = false;
+        if (allLogData.value.indexOf(resp.data) === -1)
+          allLogData.value.push(resp.data);
+        return;
+      } catch (ex) {
+        console.error("Create mood error", ex);
+      }
       break;
   }
   currentStep.value = step + 1;
@@ -282,11 +312,11 @@ const GetProfilePic = computed(() => {
 const UpdateUser = async () => {
   try {
     const client = useSupabaseClient();
-    
+
     // --- 關鍵修改：使用 FormData ---
     const formData = new FormData();
     formData.append('newName', name.value); // 傳送名字
-    
+
     if (selectedFile.value) {
       formData.append('image', selectedFile.value); // 傳送圖片檔案，對應後端的 item.name === 'image'
     }
@@ -324,6 +354,15 @@ const HandleFileChange = (e) => {
     previewUrl.value = URL.createObjectURL(file);
   }
 }
+/**今日資料 */
+const todayLogData = computed(() => {
+  // 在 allLogData 中尋找 created_at 與今天相同的資料
+  return allLogData.value.find(x =>
+    dayjs(x.created_at).isSame(dayjs(), 'day')
+  );
+});
+/**今日是否紀錄過 */
+const IsShowLogBtn = computed(() => !todayLogData.value);
 </script>
 <template>
   <div id="main" @click="isShowProfile = false">
@@ -524,7 +563,7 @@ const HandleFileChange = (e) => {
     </div>
     <!-- 主內容 -->
     <div class="w-100%">
-      <div class="xl:w-656px md:w-704px w-343px mx-auto text-center mb-64px">
+      <div class="xl:w-656px md:w-704px w-343px mx-auto text-center">
         <div v-if="user && user.user_metadata"
           class="text-Reddit md:text-32px text-24px font-bold text-[#4865DB] tracking-[-0.3px]  mb-10px">Hello,
           {{ user.user_metadata.full_name }}!</div>
@@ -534,12 +573,42 @@ const HandleFileChange = (e) => {
         <div class="text-18px font-medium text-Reddit text-[#57577B] mb-64px">{{ dayjs().format('dddd, MMMM Do, YYYY')
         }}
         </div>
+
+      </div>
+      <div v-if="IsShowLogBtn"
+        class="box-border px-32px py-16px bg-[#4865DB] text-white w-fit mx-auto rounded-10px text-20px font-semibold text-Reddit cursor-[url(/images/pointer.svg),_pointer] xl:mb-64px mb-48px"
+        @click="isShowDialog = true">
+        Log today's mood
+      </div>
+      <div v-else class="w-100% xl:mb-64px mb-48px flex xl:flex-row flex-col justify-center">
+        <!-- 左邊區域 -->
         <div
-          class="box-border px-32px py-16px bg-[#4865DB] text-white w-fit mx-auto rounded-10px text-20px font-semibold text-Reddit cursor-[url(/images/pointer.svg),_pointer]"
-          @click="isShowDialog = true">
-          Log today's mood
+          class="xl:w-670px xl:h-340px box-border p-32px rounded-16px bg-white border-1px border-solid border-[#E0E6FA] mr-32px text-Reddit flex flex-col justify-between">
+          <div>
+            <div class="text-32px tracking-[-0.3px] font-bold text-[rgba(33,33,77,0.7)]">I’m feeling</div>
+          <div class="text-40px tracking-[-0.3px] font-bold text-[#21214D]">{{ todayLogData.mood_category === 1 ? "Very Happy" :
+            todayLogData.mood_category === 2 ? "Happy" :
+              todayLogData.mood_category === 3 ? "Neutral" :
+                todayLogData.mood_category === 4 ? "Sad" : "Very Sad" }}</div>
+          </div>
+          <div class="xl:w-246px">
+            <div class="xl:w-24px mb-12px">
+              <img src="/images/quote_icon.svg" class="block w-4" alt="">
+            </div>
+            <div>
+              “When your heart is full, share your light with the world.”
+            </div>
+          </div>
+        </div>
+        <div>
+          <div
+            class="xl:w-468px box-border p-20px rounded-16px bg-white border-1px border-solid border-[#E0E6FA] mb-20px">
+          </div>
+          <div class="xl:w-468px box-border p-20px rounded-16px bg-white border-1px border-solid border-[#E0E6FA]">
+          </div>
         </div>
       </div>
+
       <div class="flex xl:flex-row flex-col xl:justify-center justify-normal xl:items-start items-center">
         <!-- 左邊區域 -->
         <div

@@ -202,7 +202,6 @@ watchEffect(() => {
     return navigateTo("/sign-up")
   }else{
     name.value = user.value.user_metadata?.display_name;
-    console.log('user',user.value.user_metadata)
   }
 })
 onMounted(() => {

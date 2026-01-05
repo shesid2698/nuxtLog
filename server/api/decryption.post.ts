@@ -1,6 +1,17 @@
 import crypto from 'node:crypto';
-
+interface ResponseModel {
+    status: status;
+    data: string ;
+}
+interface status {
+    code: number;
+    message: string;
+}
 export default defineEventHandler(async (event) => {
+  const response: ResponseModel = {
+        status: { code: 0, message: 'success' },
+        data: "",
+    };
   const body = await readBody(event);
   const {encryptedData} = body;
   const privateKey = `-----BEGIN PRIVATE KEY-----\n${process.env.RSA_PRIVATE_KEY}\n-----END PRIVATE KEY-----`;
@@ -17,8 +28,10 @@ export default defineEventHandler(async (event) => {
     );
 
     const result = decrypted.toString('utf8');
-    return { success: true, data: result };
+    response.data = result;
   } catch (error) {
-    throw createError({ statusCode: 400, message: '解密失敗' });
+    response.status.code = 1;
+    response.status.message = '解密失敗';
   }
+  return response;
 });

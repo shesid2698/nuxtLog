@@ -1,10 +1,30 @@
 <script setup lang="ts">
-const supabase = useSupabaseClient();
-const url = useRequestURL();
 const email = ref<string>("");
 const password = ref<string>("");
-const Login = () => {
-
+const Encryption = useEncryption();
+const supabase = useSupabaseClient();
+const url = useRequestURL();
+/**
+ * 登入API
+ */
+const Login = async () => {
+  try {
+    const runtimeConfig = useRuntimeConfig()
+    const encryptedPassword = await Encryption.encryptData(password.value, runtimeConfig.public.rsaPublicKey)
+    const result = await $fetch('/api/login', {
+      method: 'post',
+      body: {
+        account: email.value,
+        password: encryptedPassword
+      }
+    })
+    if (result.status.code !== 0) throw new Error(result.status.message);
+    await navigateTo('/', {
+      external: true
+    });
+  } catch (ex) {
+    console.error('Login error', ex);
+  }
 }
 /**
  * google 登入

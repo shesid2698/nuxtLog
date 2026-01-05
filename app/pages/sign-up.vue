@@ -23,24 +23,24 @@ const SignInWithGoogle = async () => {
  * 註冊帳號
  */
 const SignUp = async () => {
-  // const runtimeConfig = useRuntimeConfig()
-  // console.log('密碼', await Encryption.encryptData(password.value, runtimeConfig.public.rsaPublicKey))
-  try{
+  const runtimeConfig = useRuntimeConfig()
+  const encryptedPassword = await Encryption.encryptData(password.value, runtimeConfig.public.rsaPublicKey)
+  try {
     const resp = await $fetch('/api/create-users', {
       method: 'post',
       body: {
         email: email.value,
-        password: password.value
+        password: encryptedPassword
       }
     })
-    if (resp.status.code!==0) {
-      throw Error(resp.status.message);
+    if (resp.status.code !== 0) {
+      throw new Error(resp.status.message);
     }
-    await navigateTo('/onboarding',{
-      external:true
+    await navigateTo('/onboarding', {
+      external: true
     });
-  }catch(ex){
-    console.error('SignUp error',ex);
+  } catch (ex) {
+    console.error('SignUp error', ex);
   }
 }
 watchEffect(() => {

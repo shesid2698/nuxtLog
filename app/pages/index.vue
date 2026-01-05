@@ -595,16 +595,17 @@ const IsShowLogBtn = computed(() => !todayLogData.value);
             <div class="xl:w-24px mb-12px">
               <img src="/images/quote_icon.svg" class="block w-4" alt="">
             </div>
-            <div>
+            <div class="text-18px font-italic text-[#21214D] font-medium">
               “When your heart is full, share your light with the world.”
             </div>
           </div>
         </div>
-        <div>
+        <!-- 右邊區域 -->
+        <div class="xl:h-340px flex flex-col">
           <div
             class="xl:w-468px box-border p-20px rounded-16px bg-white border-1px border-solid border-[#E0E6FA] mb-20px">
           </div>
-          <div class="xl:w-468px box-border p-20px rounded-16px bg-white border-1px border-solid border-[#E0E6FA]">
+          <div class="flex-1 xl:w-468px box-border p-20px rounded-16px bg-white border-1px border-solid border-[#E0E6FA]">
           </div>
         </div>
       </div>

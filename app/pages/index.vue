@@ -8,6 +8,10 @@ const name = ref<string>("");
 const isShowDialog = ref(false);
 const isShowProfile = ref(false);
 const isShowProfileDialog = ref(false);
+/**用來儲存檔案物件 */
+const selectedFile = ref(null);
+/**用來預覽上船的圖片 */
+const previewUrl = ref('');
 /**紀錄步驟 */
 const currentStep = ref(1);
 /**步驟一interface */
@@ -200,7 +204,7 @@ const logRequestData = reactive<RequestData>(GetInitialData());
 watchEffect(() => {
   if (!user.value) {
     return navigateTo("/sign-up")
-  }else{
+  } else {
     name.value = user.value.user_metadata?.display_name;
   }
 })
@@ -271,32 +275,53 @@ const Logout = async () => {
   }
 }
 /**取得使用者頭像 */
-const GetProfilePic = computed(()=>{
-  return user?.value?.user_metadata?.avatar_url || '/images/none-user.svg';
+const GetProfilePic = computed(() => {
+  return previewUrl.value || user?.value?.user_metadata?.custom_avatar || '/images/default_profile.svg';
 });
-const UpdateUser = async()=>{
+/**更新使用者資料 */
+const UpdateUser = async () => {
   try {
-    const client = useSupabaseClient(); // 取得客戶端
+    const client = useSupabaseClient();
+    
+    // --- 關鍵修改：使用 FormData ---
+    const formData = new FormData();
+    formData.append('newName', name.value); // 傳送名字
+    
+    if (selectedFile.value) {
+      formData.append('image', selectedFile.value); // 傳送圖片檔案，對應後端的 item.name === 'image'
+    }
+
     const resp = await $fetch('/api/update-users', {
-      method: 'post',
-      body: {
-        newName: name.value
-      },
+      method: 'POST',
+      body: formData, // 直接把 formData 丟進去
       headers: {
+        // 注意：傳送 FormData 時，不要手動寫 'Content-Type': 'multipart/form-data'，
+        // 讓瀏覽器自動生成，否則會噴 boundary 錯誤。
         Authorization: `Bearer ${session?.value?.access_token}`
       }
-    })
-    if (resp.status.code !== 0) throw new Error(resp.status.message);
-    const { data, error } = await client.auth.refreshSession();
+    });
 
-    if (error) {
-      throw new Error(error.message);
-    }
-    await navigateTo('/', {
-      external: true
-    })
+    if (resp.status.code !== 0) throw new Error(resp.status.message);
+
+    // 重新取得 Session 以更新畫面上的 user_metadata
+    const { error } = await client.auth.refreshSession();
+    if (error) throw new Error(error.message);
+
+    // 成功後跳轉
+    await navigateTo('/', { external: true });
+
   } catch (ex) {
     console.error("UpdateUser error", ex);
+    alert(ex.message); // 給使用者一點回饋
+  }
+};
+/**圖片上傳事件 */
+const HandleFileChange = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    selectedFile.value = file;
+    // 產生預覽圖 (非必填，但對使用者體驗好)
+    previewUrl.value = URL.createObjectURL(file);
   }
 }
 </script>
@@ -444,9 +469,9 @@ const UpdateUser = async()=>{
           <div>
             <div class="text-Reddit text-18px tracking-[-0.3px] text-[#21214D] mb-6px">Upload Image</div>
             <div class="text-Reddit text-15px tracking-[-0.3px] text-[#57577B] mb-16px">Max 250KB, PNG or JPEG</div>
-            <label               class="box-border px-16px py-8px rounded-8px bg-white border-1px border-solid border-[#9393B7] w-fit text-Reddit text-18px text-[#21214D] cursor-[url(/images/pointer.svg),_pointer]"
-              >Upload<input
-                type="file" class="hidden"></label>
+            <label
+              class="box-border px-16px py-8px rounded-8px bg-white border-1px border-solid border-[#9393B7] w-fit text-Reddit text-18px text-[#21214D] cursor-[url(/images/pointer.svg),_pointer]">Upload<input
+                type="file" class="hidden" accept="image/*" @change="HandleFileChange"></label>
           </div>
         </div>
         <div
@@ -469,13 +494,14 @@ const UpdateUser = async()=>{
             class="flex items-center relative cursor-[url(/images/pointer.svg),_pointer]" @click.stop
             @click="isShowProfile = !isShowProfile">
             <div class="rounded-100% overflow-hidden mr-[8.75px]">
-              <img :src="user.user_metadata.avatar_url" class="block" width="40" height="40" alt="">
+              <img :src="user.user_metadata.custom_avatar" class="block" width="40" height="40" alt="">
             </div>
             <div><img src="/images/down.svg" width="10" alt=""></img></div>
             <!-- 個人資料選單 -->
             <div v-if="isShowProfile === true" @click.stop
               class="absolute bg-white shadow-[0_5px_8px_0_rgba(33,33,77,0.16)] md:w-200px w-343px box-border px-16px py-12px rounded-8px top-100% right-0 cursor-default">
-              <div class="text-Reddit text-18px text-[#21214D] font-medium mb-2px">{{ user.user_metadata.display_name }}</div>
+              <div class="text-Reddit text-18px text-[#21214D] font-medium mb-2px">{{ user.user_metadata.display_name }}
+              </div>
               <div class="text-Reddit text-15px tracking-[-0.3px] text-[#9393B7] mb-12px">{{ user.user_metadata.email }}
               </div>
               <div class="h-1px bg-[#E0E6FA] mb-12px"></div>

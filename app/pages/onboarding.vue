@@ -2,6 +2,10 @@
 const user = useSupabaseUser();
 const session = useSupabaseSession();
 const name = ref<string>("");
+  /**用來儲存檔案物件 */
+const selectedFile = ref<File | null>(null);
+  /**用來預覽上船的圖片 */
+const previewUrl = ref('');
 onMounted(async () => {
   if (!user.value) {
     await navigateTo('sign-up', {
@@ -9,32 +13,64 @@ onMounted(async () => {
     })
   }
 })
-/**更新會員資訊 */
+/**更新使用者資料 */
 const UpdateUser = async () => {
   try {
-    const client = useSupabaseClient(); // 取得客戶端
-    const resp = await $fetch('/api/update-users', {
-      method: 'post',
-      body: {
-        newName: name.value
-      },
-      headers: {
-        Authorization:`Bearer ${session?.value?.access_token}`
-      }
-    })
-    if(resp.status.code!==0)throw new Error(resp.status.message);
-    const { data, error } = await client.auth.refreshSession();
+    const client = useSupabaseClient();
 
-    if (error) {
-      throw new Error(error.message);
+    // --- 關鍵修改：使用 FormData ---
+    const formData = new FormData();
+    formData.append('newName', name.value); // 傳送名字
+
+    if (selectedFile.value) {
+      formData.append('image', selectedFile.value); // 傳送圖片檔案，對應後端的 item.name === 'image'
     }
-    await navigateTo('/',{
-      external:true
-    })
-  } catch (ex) {
-    console.error("UpdateUser error",ex);
+
+    const resp = await $fetch('/api/update-users', {
+      method: 'POST',
+      body: formData, // 直接把 formData 丟進去
+      headers: {
+        // 注意：傳送 FormData 時，不要手動寫 'Content-Type': 'multipart/form-data'，
+        // 讓瀏覽器自動生成，否則會噴 boundary 錯誤。
+        Authorization: `Bearer ${session?.value?.access_token}`
+      }
+    });
+
+    if (resp.status.code !== 0) throw new Error(resp.status.message);
+
+    // 重新取得 Session 以更新畫面上的 user_metadata
+    const { error } = await client.auth.refreshSession();
+    if (error) throw new Error(error.message);
+
+    // 成功後跳轉
+    await navigateTo('/', { external: true });
+
+  } catch (ex: any) {
+    console.error("UpdateUser error", ex);
+    alert(ex.message); // 給使用者一點回饋
   }
+};
+/**圖片上傳事件 */
+const HandleFileChange = (e: Event) => {
+  try {
+    const eventTarget = e.target as HTMLInputElement;
+    if (eventTarget.files === null || eventTarget.files.length === 0) throw new Error("檔案上傳異常");
+    const file = eventTarget?.files[0] || null;
+    if (!file) throw new Error("檔案為空");
+
+    selectedFile.value = file;
+    // 產生預覽圖 (非必填，但對使用者體驗好)
+    previewUrl.value = URL.createObjectURL(file);
+
+  } catch (ex: any) {
+    console.error(`HandleFileChange error..${ex.message}`);
+  }
+
 }
+/**取得使用者頭像 */
+const GetProfilePic = computed(() => {
+  return previewUrl.value || '/images/default_profile.svg';
+});
 </script>
 <template>
   <div id="main">
@@ -45,7 +81,7 @@ const UpdateUser = async () => {
         <div class="text-Reddit font-bold text-21px text-[#21214D] tracking-[-0.8px]">Mood tracker</div>
       </div>
 
-      <!-- login-card -->
+      <!-- card -->
       <div
         class="md:mt-48px mt-32px md:w-530px w-343px box-border login-container md:px-32px px-16px py-40px mx-auto rounded-16px">
         <div class="text-Reddit text-32px font-bold text-[#21214D] mb-8px tracking-[-0.3px]">Personalize your experience
@@ -61,15 +97,14 @@ const UpdateUser = async () => {
         </div>
 
         <div class="md:w-466px w-311px flex mb-32px">
-          <div class="mr-20px"><img src="/images/Avatar.svg" width="64" height="64" alt=""></img></div>
+          <div class="mr-20px"><img :src="GetProfilePic" width="64" height="64" alt=""></img></div>
 
           <div class="tracking-[-0.3px] text-Reddit">
             <div class="text-[18px] text-[#21214D] mb-6px">Upload Image</div>
             <div class="text-15px text-[#57577B] mb-16px">Max 250KB, PNG or JPEG</div>
             <label
-              class="text-Reddit text-18px font-medium text-[#21214D] box-border px-16px py-8px bg-[#ffffff] border-1px border-solid border-[#9393B7] rounded-8px w-fit block"><input
-                type="file" class="hidden">
-              Upload</label>
+              class="box-border px-16px py-8px rounded-8px bg-white border-1px border-solid border-[#9393B7] w-fit text-Reddit text-18px text-[#21214D] cursor-[url(/images/pointer.svg),_pointer]">Upload<input
+                type="file" class="hidden" accept="image/*" @change="HandleFileChange"></label>
           </div>
         </div>
 

@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import fs from 'node:fs';
-import path from 'node:path';
+
 interface ResponseModel {
     status: status;
     data: object | null;
@@ -9,7 +8,8 @@ interface status {
     code: number;
     message: string;
 }
-export default defineEventHandler(async (event) => {
+
+export default defineEventHandler(async event => {
     const response: ResponseModel = {
         status: { code: 0, message: 'success' },
         data: null,
@@ -22,8 +22,13 @@ export default defineEventHandler(async (event) => {
         if (authHeader.startsWith('Bearer ')) authHeader = authHeader.slice(7);
 
         const config = useRuntimeConfig();
+        // 使用 Service Key 具有管理權限，可以直接上傳檔案與更新使用者
         const supabaseAdmin = createClient(config.supabaseUrl, config.supabaseServiceKey);
-        const { data: { user: verifiedUser }, error: authError } = await supabaseAdmin.auth.getUser(authHeader);
+
+        const {
+            data: { user: verifiedUser },
+            error: authError,
+        } = await supabaseAdmin.auth.getUser(authHeader);
         if (authError || !verifiedUser) throw new Error('Token 無效');
 
         const userId = verifiedUser.id;
@@ -35,6 +40,7 @@ export default defineEventHandler(async (event) => {
         let newName = '';
         let fileBuffer: Buffer | null = null;
         let fileName = '';
+        let fileType = 'image/png'; // 預設型別
 
         for (const item of formData) {
             if (item.name === 'newName') {
@@ -42,49 +48,57 @@ export default defineEventHandler(async (event) => {
             } else if (item.name === 'image' && item.filename) {
                 fileBuffer = item.data;
                 fileName = item.filename;
+                fileType = item.type || 'image/png';
             }
         }
 
-        // --- 3. 檔案寫入本地 /public 路徑 ---
+        // --- 3. 將檔案上傳至 Supabase Storage ---
+        // 取得舊的頭像連結作為預設值
         let avatarPublicPath = verifiedUser.user_metadata.custom_avatar;
 
         if (fileBuffer) {
             const fileExt = fileName.split('.').pop();
-            const newFileName = `${userId}-${Date.now()}.${fileExt}`;
+            // 建立唯一的檔案名稱，存放在以 userId 命名的資料夾內
+            const storagePath = `${userId}/${Date.now()}.${fileExt}`;
 
-            // 定義儲存路徑 (注意：在 Nuxt 執行環境中，process.cwd() 是專案根目錄)
-            const storageDir = path.join(process.cwd(), 'public', 'images', 'avatars');
-            const fullPath = path.join(storageDir, newFileName);
+            // 上傳到 Supabase Storage (Bucket 名稱為 avatarts)
+            const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+                .from('avatars') // 確保這裡跟你建立的 Bucket 名稱一致
+                .upload(storagePath, fileBuffer, {
+                    contentType: fileType,
+                    upsert: true, // 如果檔案已存在則覆蓋
+                });
 
-            // 確保資料夾存在
-            if (!fs.existsSync(storageDir)) {
-                fs.mkdirSync(storageDir, { recursive: true });
-            }
+            if (uploadError) throw new Error(`Storage 上傳失敗: ${uploadError.message}`);
 
-            // 寫入檔案
-            fs.writeFileSync(fullPath, fileBuffer);
+            // 取得上傳後的公開存取網址 (因為你 Bucket 設為 Public)
+            const {
+                data: { publicUrl },
+            } = supabaseAdmin.storage.from('avatarts').getPublicUrl(storagePath);
 
-            // 設定瀏覽器可訪問的 URL 路徑 (不含 public)
-            avatarPublicPath = `/images/avatars/${newFileName}`;
+            avatarPublicPath = publicUrl;
         }
 
         // --- 4. 更新資料庫 (Auth & Member 表) ---
-        const { data: updateData, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
             user_metadata: {
                 display_name: newName,
-                avatar_url: avatarPublicPath ,
-                custom_avatar: avatarPublicPath
+                avatar_url: avatarPublicPath,
+                custom_avatar: avatarPublicPath,
             },
         });
         if (updateError) throw updateError;
 
         await supabaseAdmin
             .from('member')
-            .update({ name: newName, nickname: newName, avatar_url: avatarPublicPath })
+            .update({
+                name: newName,
+                nickname: newName,
+                avatar_url: avatarPublicPath,
+            })
             .eq('user_id', userId);
 
         response.data = { avatarUrl: avatarPublicPath };
-
     } catch (ex: any) {
         response.status.code = 1;
         response.status.message = ex.message;

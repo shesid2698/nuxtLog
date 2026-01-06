@@ -61,7 +61,7 @@ export default defineEventHandler(async event => {
             // 建立唯一的檔案名稱，存放在以 userId 命名的資料夾內
             const storagePath = `${userId}/${Date.now()}.${fileExt}`;
 
-            // 上傳到 Supabase Storage (Bucket 名稱為 avatarts)
+            // 上傳到 Supabase Storage (Bucket 名稱為 avatars)
             const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
                 .from('avatars') // 確保這裡跟你建立的 Bucket 名稱一致
                 .upload(storagePath, fileBuffer, {
@@ -74,7 +74,7 @@ export default defineEventHandler(async event => {
             // 取得上傳後的公開存取網址 (因為你 Bucket 設為 Public)
             const {
                 data: { publicUrl },
-            } = supabaseAdmin.storage.from('avatarts').getPublicUrl(storagePath);
+            } = supabaseAdmin.storage.from('avatars').getPublicUrl(storagePath);
 
             avatarPublicPath = publicUrl;
         }

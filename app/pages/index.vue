@@ -336,7 +336,7 @@ const Logout = async () => {
 }
 /**取得使用者頭像 */
 const GetProfilePic = computed(() => {
-  return previewUrl.value || user?.value?.user_metadata?.custom_avatar || '/images/default_profile.svg';
+  return previewUrl.value || user?.value?.user_metadata?.custom_avatar || '/images/Avatar.svg';
 });
 /**更新使用者資料 */
 const UpdateUser = async () => {

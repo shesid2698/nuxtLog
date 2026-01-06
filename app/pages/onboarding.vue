@@ -69,7 +69,7 @@ const HandleFileChange = (e: Event) => {
 }
 /**取得使用者頭像 */
 const GetProfilePic = computed(() => {
-  return previewUrl.value || '/images/default_profile.svg';
+  return previewUrl.value || '/images/Avatar.svg';
 });
 </script>
 <template>
@@ -97,7 +97,7 @@ const GetProfilePic = computed(() => {
         </div>
 
         <div class="md:w-466px w-311px flex mb-32px">
-          <div class="mr-20px"><img :src="GetProfilePic" width="64" height="64" alt=""></img></div>
+          <div class="mr-20px"><img :src="GetProfilePic" width="64" height="64" alt="" class="rounded-999px"></img></div>
 
           <div class="tracking-[-0.3px] text-Reddit">
             <div class="text-[18px] text-[#21214D] mb-6px">Upload Image</div>

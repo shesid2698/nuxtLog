@@ -1,7 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 interface ResponseModel {
     status: status;
-    data: object | null;
+    data: ResponseData | null;
+}
+interface ResponseData {
+    id: number;
+    user_id: string;
+    mood_category: number;
+    feel_category: string;
+    about: string;
+    sleep_category: number;
+    created_at: string;
 }
 interface status {
     code: number;

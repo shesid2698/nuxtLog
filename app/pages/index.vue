@@ -9,11 +9,21 @@ const isShowDialog = ref(false);
 const isShowProfile = ref(false);
 const isShowProfileDialog = ref(false);
 /**用來儲存檔案物件 */
-const selectedFile = ref(null);
+const selectedFile = ref<File | null>(null);
 /**用來預覽上船的圖片 */
 const previewUrl = ref('');
 /**紀錄步驟 */
 const currentStep = ref(1);
+/**長條圖每筆資料interface */
+interface DataUiProps {
+  bg: string,
+  h: string,
+  src: string
+}
+interface DataUiDateProps {
+  month: string,
+  day: string
+}
 /**步驟一interface */
 interface moodCategories {
   category: number,
@@ -141,30 +151,36 @@ const step2Content = ref<feelCategories[]>(
 /**步驟四interface */
 interface sleepCategories {
   category: number,
-  text: string
+  text: string,
+  value: string
 }
 /**步驟四內容 */
 const step4Content = ref<sleepCategories[]>(
   [
     {
       category: 1,
-      text: "9+ hours"
+      text: "9+ hours",
+      value: "h-91%"
     },
     {
       category: 2,
-      text: "7-8 hours"
+      text: "7-8 hours",
+      value: "h-73.3%"
     },
     {
       category: 3,
-      text: "5-6 hours"
+      text: "5-6 hours",
+      value: "h-55.6%"
     },
     {
       category: 4,
-      text: "3-4 hours"
+      text: "3-4 hours",
+      value: "h-38%"
     },
     {
       category: 5,
-      text: "0-2 hours"
+      text: "0-2 hours",
+      value: "h-20.3%"
     },
   ]
 )
@@ -187,6 +203,16 @@ interface ResponseData {
   sleep_category: number,
   created_at: string
 }
+/**初始化response model */
+const GetInitialResponseData = (): ResponseData => ({
+  id: 0,
+  user_id: "",
+  mood_category: 0,
+  feel_category: "",
+  about: "",
+  sleep_category: 0,
+  created_at: ""
+});
 /**初始化model */
 const GetInitialData = (): RequestData => ({
   moodCategory: 0,
@@ -195,6 +221,7 @@ const GetInitialData = (): RequestData => ({
   sleepCategory: 0,
   error: false
 });
+
 /**log request */
 const logRequestData = reactive<RequestData>(GetInitialData());
 /**所有log資料 */
@@ -281,11 +308,14 @@ const CheckStep = async (step: number) => {
           }
         });
         if (resp.status.code !== 0) throw new Error(resp.status.message);
+        const resultData = resp?.data;
+        if (!resultData) throw new Error("異常..資料為空");
         currentStep.value = 1;
         Object.assign(logRequestData, GetInitialData());
         isShowDialog.value = false;
-        if (allLogData.value.indexOf(resp.data) === -1)
-          allLogData.value.push(resp.data);
+        if (resultData && !allLogData.value.some(item => item.id === resultData.id)) {
+          allLogData.value.push(resultData);
+        }
         return;
       } catch (ex) {
         console.error("Create mood error", ex);
@@ -340,29 +370,161 @@ const UpdateUser = async () => {
     // 成功後跳轉
     await navigateTo('/', { external: true });
 
-  } catch (ex) {
+  } catch (ex: any) {
     console.error("UpdateUser error", ex);
     alert(ex.message); // 給使用者一點回饋
   }
 };
 /**圖片上傳事件 */
-const HandleFileChange = (e) => {
-  const file = e.target.files[0];
-  if (file) {
+const HandleFileChange = (e: Event) => {
+  try {
+    const eventTarget = e.target as HTMLInputElement;
+    if (eventTarget.files === null || eventTarget.files.length === 0) throw new Error("檔案上傳異常");
+    const file = eventTarget?.files[0] || null;
+    if (!file) throw new Error("檔案為空");
+
     selectedFile.value = file;
     // 產生預覽圖 (非必填，但對使用者體驗好)
     previewUrl.value = URL.createObjectURL(file);
+
+  } catch (ex: any) {
+    console.error(`HandleFileChange error..${ex.message}`);
   }
+
 }
 /**今日資料 */
-const todayLogData = computed(() => {
+const todayLogData = computed((): ResponseData => {
   // 在 allLogData 中尋找 created_at 與今天相同的資料
-  return allLogData.value.find(x =>
+  let _mResponseData = allLogData.value.find(x =>
     dayjs(x.created_at).isSame(dayjs(), 'day')
-  );
+  ) || null;
+  return _mResponseData || GetInitialResponseData();
 });
 /**今日是否紀錄過 */
 const IsShowLogBtn = computed(() => !todayLogData.value);
+/**取得本日心情svg  */
+const GetMoodPic = (moodCategory: number): string => {
+  return moodCategory === 0 || moodCategory === 1 ? "/images/very_happy.svg" :
+    moodCategory === 2 ? "/images/happy.svg" :
+      moodCategory === 3 ? "/images/neutral.svg" :
+        moodCategory === 4 ? "/images/sad.svg" : "/images/very_sad.svg";
+}
+/** "感覺字串"轉陣列 */
+const TurnFeelCategories = (strFeelCategories: string): feelCategories[] => {
+  // --- 新增防呆判斷 ---
+  if (!strFeelCategories || strFeelCategories.trim() === "") {
+    return [];
+  }
+
+  try {
+    const feelCategories = JSON.parse(strFeelCategories) as number[];
+
+    if (!Array.isArray(feelCategories) || feelCategories.length === 0) {
+      return [];
+    }
+
+    return step2Content.value?.filter(x =>
+      feelCategories.includes(x.category)
+    ) ?? [];
+  } catch (error) {
+    // 如果 JSON 格式還是不對（例如資料庫存了髒資料），至少不會讓整個 App 壞掉
+    console.error("解析 feel_category 失敗:", error);
+    return [];
+  }
+}
+/**取得每筆資料屬性 */
+const GetEachDataProps = (mood_category: number, sleep_category: number): DataUiProps => {
+  let eachData: DataUiProps = {
+    bg: "",
+    h: "",
+    src: ""
+  };
+  switch (mood_category) {
+    case 1:
+      eachData.bg = "bg-[#FFC97C]";
+      eachData.src = "/images/very_happy_white.svg";
+      break;
+    case 2:
+      eachData.bg = "bg-[#89E780]";
+      eachData.src = "/images/happy_white.svg";
+      break;
+    case 3:
+      eachData.bg = "bg-[#89CAFF]";
+      eachData.src = "/images/neutral_white.svg";
+      break;
+    case 4:
+      eachData.bg = "bg-[#B8B1FF]";
+      eachData.src = "/images/sad_white.svg";
+      break;
+    case 5:
+      eachData.bg = "bg-[#FF9B99]";
+      eachData.src = "/images/very_sad_white.svg";
+      break;
+  }
+  switch (sleep_category) {
+    case 1:
+      eachData.h = "h-91%";
+      break;
+    case 2:
+      eachData.h = "h-73.3%";
+      break;
+    case 3:
+      eachData.h = "h-55.6%";
+      break;
+    case 4:
+      eachData.h = "h-38%";
+      break;
+    case 5:
+      eachData.h = "h-20.3%";
+      break;
+  }
+  return eachData;
+}
+/**轉換每筆長條圖資料顏色 */
+const GetEachBarData = (allData: ResponseData[]): DataUiProps[] => {
+  let barData: DataUiProps[] = [];
+  allData.forEach(x => {
+    const eachData = GetEachDataProps(x.mood_category, x.sleep_category);
+    barData.push(eachData);
+  });
+  return barData;
+}
+/**轉換每筆長條圖資料日期格式 */
+const GetMonthStr = (allData: ResponseData[]): DataUiDateProps[] => {
+  let resultData: DataUiDateProps[] = [];
+  allData.forEach(x => {
+    let eachData: DataUiDateProps = {
+      month: "",
+      day: ""
+    }
+    eachData.month = dayjs(x.created_at).format('MMMM');
+    eachData.day = dayjs(x.created_at).format('D');
+    resultData.push(eachData);
+  });
+  return resultData;
+}
+/**統計平均5筆 */
+const GetLast5AverageData = computed(() => {
+  if (allLogData.value.length < 5) return null;
+  let averData = {
+    moodCategory: 0,
+    sleepCategory: 0
+  }
+  const moodCounts = allLogData.value.slice(-5).reduce((item, cur) => {
+    item[cur.mood_category] = (item[cur.mood_category] || 0) + 1;
+    return item;
+  }, {} as Record<number, number>);
+  allLogData.value.slice(-5).forEach(x=>{
+    averData.sleepCategory+=x.sleep_category;
+  })
+  averData.sleepCategory =Math.round(averData.sleepCategory/5);
+  const mostFrequentKey = Object.keys(moodCounts).reduce((a, b) =>
+    (moodCounts[Number(a)] ?? 0) > (moodCounts[Number(b)] ?? 0) ? a : b
+  );
+  averData.moodCategory = Number(mostFrequentKey);
+
+  return averData;
+});
 </script>
 <template>
   <div id="main" @click="isShowProfile = false">
@@ -580,40 +742,73 @@ const IsShowLogBtn = computed(() => !todayLogData.value);
         @click="isShowDialog = true">
         Log today's mood
       </div>
-      <div v-else class="w-100% xl:mb-64px mb-48px flex xl:flex-row flex-col justify-center">
+      <div v-else class="w-100% mb-32px flex xl:flex-row flex-col justify-center">
         <!-- 左邊區域 -->
         <div
-          class="xl:w-670px xl:h-340px box-border p-32px rounded-16px bg-white border-1px border-solid border-[#E0E6FA] mr-32px text-Reddit flex flex-col justify-between">
+          class="relative overflow-hidden xl:w-670px w-95% md:h-340px box-border md:p-32px px-16px py-32px rounded-16px bg-white border-1px border-solid border-[#E0E6FA] mx-auto xl:mr-32px xl:ml-0 text-Reddit flex flex-col justify-between items-center md:items-unset mb-20px xl:mb-0">
           <div>
-            <div class="text-32px tracking-[-0.3px] font-bold text-[rgba(33,33,77,0.7)]">I’m feeling</div>
-          <div class="text-40px tracking-[-0.3px] font-bold text-[#21214D]">{{ todayLogData.mood_category === 1 ? "Very Happy" :
-            todayLogData.mood_category === 2 ? "Happy" :
-              todayLogData.mood_category === 3 ? "Neutral" :
-                todayLogData.mood_category === 4 ? "Sad" : "Very Sad" }}</div>
+            <div class="text-center md:text-start text-32px tracking-[-0.3px] font-bold text-[rgba(33,33,77,0.7)]">I’m
+              feeling</div>
+            <div class="text-center md:text-start text-40px tracking-[-0.3px] font-bold text-[#21214D] mb-32px md:mb-0">
+              {{
+                todayLogData.mood_category === 1 ?
+                  "Very Happy" :
+                  todayLogData.mood_category === 2 ? "Happy" :
+                    todayLogData.mood_category === 3 ? "Neutral" :
+                      todayLogData.mood_category === 4 ? "Sad" : "Very Sad" }}</div>
+            <div class="md:w-320px w-200px md:h-320px h-200px md:absolute right-40px top-50px mb-32px md:mb-0">
+              <img :src="GetMoodPic(todayLogData.mood_category)" class="block w-100%" alt="">
+            </div>
           </div>
-          <div class="xl:w-246px">
+          <div class="md:w-246px flex flex-col items-center md:items-unset">
             <div class="xl:w-24px mb-12px">
               <img src="/images/quote_icon.svg" class="block w-4" alt="">
             </div>
-            <div class="text-18px font-italic text-[#21214D] font-medium">
-              “When your heart is full, share your light with the world.”
+            <div class="text-center md:text-start text-18px font-italic text-[#21214D] font-medium">
+              {{ todayLogData.mood_category === 1 ? "When your heart is full, share your light with the world."
+                : todayLogData.mood_category === 2 ? "Happiness grows when it's shared with others."
+                  : todayLogData.mood_category === 3 ? "A calm mind can find opportunity in every moment."
+                    : todayLogData.mood_category === 4 ? "One small positive thought can change your entire day."
+                      : "You are stronger than you think; the storm will pass." }}
+
             </div>
           </div>
         </div>
         <!-- 右邊區域 -->
-        <div class="xl:h-340px flex flex-col">
+        <div class="xl:h-340px w-95% xl:w-auto flex flex-col mx-auto xl:mx-0">
+          <!-- 睡眠資訊 -->
           <div
             class="xl:w-468px box-border p-20px rounded-16px bg-white border-1px border-solid border-[#E0E6FA] mb-20px">
+            <div class="flex items-center text-Reddit text-18px font-medium text-[#57577B] mb-16px"><img
+                src="/images/sleep_icon.svg" class="inline-block w-22px mr-13px" alt="">Sleep</div>
+            <div class="text-Reddit text-32px font-bold tracking-[-0.3px] text-[#21214D]">{{ todayLogData.sleep_category
+              ===
+              0 || todayLogData.sleep_category === 1 ? "9+ hours" :
+              todayLogData.sleep_category === 2 ? "7-8 hours" :
+                todayLogData.sleep_category === 3 ? "5-6 hours" :
+                  todayLogData.sleep_category === 4 ? "3-4 hours" : "0-2 hours" }}</div>
           </div>
-          <div class="flex-1 xl:w-468px box-border p-20px rounded-16px bg-white border-1px border-solid border-[#E0E6FA]">
+          <!-- 感覺資訊 -->
+          <div
+            class="xl:flex-1 flex-none h-197px xl:h-auto xl:w-468px box-border p-20px rounded-16px bg-white border-1px border-solid border-[#E0E6FA] text-Reddit flex flex-col">
+            <div class="flex items-center text-18px font-medium text-[#57577B] mb-16px"><img
+                src="/images/start_icon.svg" class="inline-block w-22px mr-13px" alt="">Reflection of the day</div>
+            <div class="text-18px text-[#21214D] flex-grow">{{ todayLogData.about }}</div>
+            <div>
+              <span v-if="TurnFeelCategories(todayLogData.feel_category).length > 0"
+                v-for="item in TurnFeelCategories(todayLogData.feel_category)"
+                class="text-Reddit text-18px font-italic text-[#57577B] mf-12px">
+                #{{ item.text }}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="flex xl:flex-row flex-col xl:justify-center justify-normal xl:items-start items-center">
         <!-- 左邊區域 -->
-        <div
-          class="xl:w-370px md:w-704px w-343px bg-[#FFFFFF] box-border p-24px rounded-16px border-1px border-solid border-[#E0E6FA] xl:mr-32px mr-0 xl:mb-0 mb-32px">
+        <div v-if="GetLast5AverageData === null"
+          class="xl:w-370px w-95% bg-[#FFFFFF] box-border p-24px rounded-16px border-1px border-solid border-[#E0E6FA] xl:mr-32px xl:mr-0 xl:mb-0 mb-32px mx-auto xl:mx-0">
           <!-- title1 -->
           <div class="mb-12px">
             <span class="text-Reddit text-20px font-semibold text-[#21214D]">Average Mood</span>
@@ -649,10 +844,63 @@ const IsShowLogBtn = computed(() => !todayLogData.value);
             </div>
           </div>
         </div>
+        <div v-else
+          class="xl:w-370px w-95% bg-[#FFFFFF] box-border p-24px rounded-16px border-1px border-solid border-[#E0E6FA] xl:mr-32px xl:mr-0 xl:mb-0 mb-32px mx-auto xl:mx-0">
+          <!-- title1 -->
+          <div class="mb-12px">
+            <span class="text-Reddit text-20px font-semibold text-[#21214D]">Average Mood</span>
+            <span class="text-Reddit text-15px tracking-[-0.3px] text-[#57577B]"> (Last 5 Check-ins)</span>
+          </div>
+          <!-- 資訊卡1 -->
+          <div class="w-100% box-border px-20px py-41.75px rounded-16px relative overflow-hidden mb-24px"
+            :class="[GetEachDataProps(GetLast5AverageData.moodCategory, GetLast5AverageData.sleepCategory).bg]">
+            <div class="text-24px text-Reddit font-semibold text-[#21214D] mb-12px flex items-center">
+              <img :src="GetEachDataProps(GetLast5AverageData.moodCategory, GetLast5AverageData.sleepCategory).src"
+                class="inline-block w-24px mr-16px" alt="">{{ GetLast5AverageData.moodCategory === 1 ? "Very Happy" :
+                  GetLast5AverageData.moodCategory === 2 ? "Happy" :
+                    GetLast5AverageData.moodCategory === 3 ? "Neutral" :
+                      GetLast5AverageData.moodCategory === 4 ? "Sad" : "Very Sad" }}
+            </div>
+            <div class="text-Reddit text-15px tracking-[-0.3px] text-[#21214D] flex items-center">
+              <img src="/images/arrow_right.svg" class="inline-block w-10px mr-9px" alt="">Same as the previous 5
+              check-ins
+            </div>
+            <div
+              class="absolute w-221px aspect-ratio-[1/1] bg-[rgba(255,255,255,0.2)] rounded-100% xl:left-122% left-122% md:left-110% top-0 transform-translate-x-[-50%]">
+            </div>
+            <div
+              class="absolute w-221px aspect-ratio-[1/1] bg-[rgba(255,255,255,0.2)] rounded-100% xl:left-115% md:left-106% left-115% top-50% transform-translate-y-[-50%] transform-translate-x-[-50%]">
+            </div>
+          </div>
+          <!-- title2 -->
+          <div class="mb-16px">
+            <span class="text-Reddit text-20px font-semibold text-[#21214D]">Average Sleep</span>
+            <span class="text-Reddit text-15px tracking-[-0.3px] text-[#57577B]"> (Last 5 Check-ins)</span>
+          </div>
+          <!-- 資訊卡2 -->
+          <div class="w-100% box-border px-20px py-41.75px rounded-16px bg-[#4865DB] relative overflow-hidden">
+            <div class="text-24px text-Reddit font-semibold text-white mb-12px flex items-center">
+              <img src="/images/sleep_icon_white.svg" class="inline-block h-24px mr-16px" alt="">{{
+                GetLast5AverageData.sleepCategory === 1 ? "9+ hours" :
+                  GetLast5AverageData.sleepCategory === 2 ? "7-8 hours" :
+                    GetLast5AverageData.sleepCategory === 3 ? "5-6 hours" :
+                      GetLast5AverageData.sleepCategory === 4 ? "3-4 hours" : "0-2 hours" }}
+            </div>
+            <div class="w-200px text-Reddit text-15px tracking-[-0.3px] text-white">
+              <img src="/images/arrow_right_bottom.svg" class="inline-block w-10px mr-10px" alt="">Decrease from the previous 5 check-ins
+            </div>
+            <div
+              class="absolute w-221px aspect-ratio-[1/1] bg-[rgba(255,255,255,0.2)] rounded-100% xl:left-122% left-122% md:left-110% top-0 transform-translate-x-[-50%]">
+            </div>
+            <div
+              class="absolute w-221px aspect-ratio-[1/1] bg-[rgba(255,255,255,0.2)] rounded-100% xl:left-115% md:left-106% left-115% top-50% transform-translate-y-[-50%] transform-translate-x-[-50%]">
+            </div>
+          </div>
+        </div>
         <!-- 右邊區域 -->
-        <div>
+        <div class="w-100% xl:w-auto">
           <div
-            class="bg-[#FFFFFF] xl:w-768px md:w-704px w-343px rounded-16px box-border md:px-24px md:py-24px px-16px py-20px  border-1px border-solid border-[#E0E6FA]">
+            class="bg-[#FFFFFF] xl:w-768px w-95% rounded-16px box-border md:px-24px md:py-24px px-16px py-20px  border-1px border-solid border-[#E0E6FA] mx-auto xl:mx-0">
             <div class="text-Reddit md:text-32px text-28px tracking-[-0.3px] text-bold text-[#21214D] mb-32px">Mood and
               sleep trends
             </div>
@@ -688,100 +936,21 @@ const IsShowLogBtn = computed(() => !todayLogData.value);
                   <div class="w-95% h-1px line my-0 mx-auto"></div>
                 </div>
                 <div class="absolute w-95% h-85% top-0 left-50% transform-translate-x-[-50%] flex items-end">
-                  <div class="!w-42px shrink-0 mr-16px h-55.6% bg-[#FFC97C] box-border p-5px rounded-999px">
-                    <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_happy_white.svg" alt=""
-                        class="block w-100%"></div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-38% bg-[#89E780] box-border p-5px rounded-999px">
-                    <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/happy_white.svg" alt=""
-                        class="block w-100%"></div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-20.3% bg-[#89CAFF] box-border p-5px rounded-999px">
-                    <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/neutral_white.svg" alt=""
-                        class="block w-100%"></div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-73.3% bg-[#B8B1FF] box-border p-5px rounded-999px">
-                    <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/sad_white.svg" alt=""
-                        class="block w-100%"></div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-91% bg-[#FF9B99] box-border p-5px rounded-999px">
-                    <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_sad_white.svg" alt=""
-                        class="block w-100%"></div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-91% bg-blue box-border p-5px rounded-999px">
-                    <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_happy.svg" alt=""
-                        class="block w-100%"></div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-91% bg-blue box-border p-5px rounded-999px">
-                    <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_happy.svg" alt=""
-                        class="block w-100%"></div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-91% bg-blue box-border p-5px rounded-999px">
-                    <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_happy.svg" alt=""
-                        class="block w-100%"></div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-91% bg-blue box-border p-5px rounded-999px">
-                    <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_happy.svg" alt=""
-                        class="block w-100%"></div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-91% bg-blue box-border p-5px rounded-999px">
-                    <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_happy.svg" alt=""
-                        class="block w-100%"></div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-91% bg-blue box-border p-5px rounded-999px">
-                    <div class="w-full aspect-[1/1] rounded-999px"><img src="/images/very_happy.svg" alt=""
-                        class="block w-100%"></div>
+                  <div v-if="GetEachBarData(allLogData).length > 0" v-for="item in GetEachBarData(allLogData)"
+                    class="!w-42px shrink-0 mr-16px box-border p-5px rounded-999px" :class="[item.bg, item.h]">
+                    <div class="w-full aspect-[1/1] rounded-999px"><img :src="item.src" alt="" class="block w-100%">
+                    </div>
                   </div>
                 </div>
                 <div class="absolute w-95% h-15% bottom-0 left-50% transform-translate-x-[-50%] flex">
-                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
-                    <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
-                    <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
-                    <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
-                    <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
-                    <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
-                    <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
-                    <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
-                    <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
-                    <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
-                    <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
-                    <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
-                    <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
-                    <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
-                    <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
-                    <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
-                    <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
-                    <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
-                    <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
-                    <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
-                    <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
-                  </div>
-                  <div class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
-                    <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">March</div>
-                    <div class="text-Reddit text-13px font-semibold text-[#21214D]">31</div>
+                  <div v-if="GetMonthStr(allLogData).length > 0" v-for="item in GetMonthStr(allLogData)"
+                    class="!w-42px shrink-0 mr-16px h-100% text-center content-center">
+                    <div class="text-Reddit text-12px text-[rgba(33,33,77,0.7)]">{{ item.month }}</div>
+                    <div class="text-Reddit text-13px font-semibold text-[#21214D]">{{ item.day }}</div>
                   </div>
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>

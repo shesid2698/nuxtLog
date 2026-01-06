@@ -1,7 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 interface ResponseModel {
     status: status;
-    data: object | null;
+    data: ResponseData | null;
+}
+interface ResponseData {
+    id: number;
+    user_id: string;
+    mood_category: number;
+    feel_category: string;
+    about: string;
+    sleep_category: number;
+    created_at: string;
 }
 interface status {
     code: number;
@@ -38,7 +47,7 @@ export default defineEventHandler(async (event) => {
             .select('*')
             .eq('user_id', userId) // 篩選該使用者的資料
             .gte('created_at', isoDate) // 大於等於 30 天前的日期
-            .order('created_at', { ascending: false }); // 依照時間由新到舊排序
+            .order('created_at', { ascending: true }); // 依照時間由新到舊排序
 
         if (selectError) throw selectError;
 

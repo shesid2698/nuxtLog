@@ -400,8 +400,6 @@ const todayLogData = computed((): ResponseData => {
   ) || null;
   return _mResponseData || GetInitialResponseData();
 });
-/**今日是否紀錄過 */
-const IsShowLogBtn = computed(() => !todayLogData.value);
 /**取得本日心情svg  */
 const GetMoodPic = (moodCategory: number): string => {
   return moodCategory === 0 || moodCategory === 1 ? "/images/very_happy.svg" :
@@ -737,7 +735,7 @@ const GetLast5AverageData = computed(() => {
         </div>
 
       </div>
-      <div v-if="IsShowLogBtn"
+      <div v-if="todayLogData.user_id === ''"
         class="box-border px-32px py-16px bg-[#4865DB] text-white w-fit mx-auto rounded-10px text-20px font-semibold text-Reddit cursor-[url(/images/pointer.svg),_pointer] xl:mb-64px mb-48px"
         @click="isShowDialog = true">
         Log today's mood

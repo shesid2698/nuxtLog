@@ -1,9 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
-
+interface ResponseModel {
+    status: status;
+    data: object | null;
+}
+interface status {
+    code: number;
+    message: string;
+}
 export default defineEventHandler(async (event) => {
-    const response = {
+    const response: ResponseModel = {
         status: { code: 0, message: 'success' },
         data: null,
     };
@@ -44,7 +51,7 @@ export default defineEventHandler(async (event) => {
         if (fileBuffer) {
             const fileExt = fileName.split('.').pop();
             const newFileName = `${userId}-${Date.now()}.${fileExt}`;
-            
+
             // 定義儲存路徑 (注意：在 Nuxt 執行環境中，process.cwd() 是專案根目錄)
             const storageDir = path.join(process.cwd(), 'public', 'images', 'avatars');
             const fullPath = path.join(storageDir, newFileName);
@@ -63,8 +70,8 @@ export default defineEventHandler(async (event) => {
 
         // --- 4. 更新資料庫 (Auth & Member 表) ---
         const { data: updateData, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-            user_metadata: { 
-                display_name: newName, 
+            user_metadata: {
+                display_name: newName,
                 avatar_url: avatarPublicPath ,
                 custom_avatar: avatarPublicPath
             },

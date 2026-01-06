@@ -693,7 +693,7 @@ const GetLast5AverageData = computed(() => {
             class="flex items-center relative cursor-[url(/images/pointer.svg),_pointer]" @click.stop
             @click="isShowProfile = !isShowProfile">
             <div class="rounded-100% overflow-hidden mr-[8.75px]">
-              <img :src="user.user_metadata.custom_avatar" class="block" width="40" height="40" alt="">
+              <img :src="user.user_metadata.custom_avatar || '/images/default_profile.svg'" class="block" width="40" height="40" alt="">
             </div>
             <div><img src="/images/down.svg" width="10" alt=""></img></div>
             <!-- 個人資料選單 -->

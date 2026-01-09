@@ -1,15 +1,8 @@
 // 直接引用模組提供的兩個 Helper
 import { serverSupabaseClient } from '#supabase/server'
-interface ResponseModel {
-    status: status;
-    data: object | null;
-}
-interface status {
-    code: number;
-    message: string;
-}
+
 export default defineEventHandler(async (event) => {
-    const response: ResponseModel = {
+    const response: IResponseModel = {
         status: { code: 0, message: 'success' },
         data: null,
     };
@@ -30,7 +23,7 @@ export default defineEventHandler(async (event) => {
         const authClient = await serverSupabaseClient(event)
 
         const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
-            email: account, // 你的虛擬 Email 邏輯
+            email: account,
             password:decryptedResult.data
         })
 

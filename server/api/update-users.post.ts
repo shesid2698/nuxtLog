@@ -1,16 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-interface ResponseModel {
-    status: status;
-    data: object | null;
-}
-interface status {
-    code: number;
-    message: string;
-}
-
 export default defineEventHandler(async event => {
-    const response: ResponseModel = {
+    const response: IResponseModel = {
         status: { code: 0, message: 'success' },
         data: null,
     };

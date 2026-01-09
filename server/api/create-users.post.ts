@@ -1,14 +1,6 @@
 import { serverSupabaseClient } from '#supabase/server';
-interface ResponseModel {
-    status: status;
-    data: object | null;
-}
-interface status {
-    code: number;
-    message: string;
-}
 export default defineEventHandler(async event => {
-    const response: ResponseModel = {
+    const response: IResponseModel = {
         status: { code: 0, message: 'success' },
         data: null,
     };
@@ -21,9 +13,10 @@ export default defineEventHandler(async event => {
             throw new Error('缺少必要欄位: email, password');
         }
         const decryptedResult = await $fetch('/api/decryption', {
-            method: 'POST', body: { encryptedData: password }
+            method: 'POST',
+            body: { encryptedData: password },
         });
-        if(decryptedResult.status.code !== 0 ||decryptedResult.data ==="")throw new Error(decryptedResult.status.message);
+        if (decryptedResult.status.code !== 0 || decryptedResult.data === '') throw new Error(decryptedResult.status.message);
         // 2. 初始化 Supabase Client
         // 注意：這裡即使沒登入也能用，因為 signUp 本來就是給匿名用的
         const client = await serverSupabaseClient(event);

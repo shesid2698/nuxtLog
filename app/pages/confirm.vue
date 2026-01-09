@@ -9,7 +9,6 @@ const session = useSupabaseSession()
 
 const isLoading = ref(true)
 const statusMsg = ref('正在驗證身分...')
-
 // Supabase專案域名
 const SUPABASE_STORAGE_URL = 'kqsnhaopagkbpppqeret.supabase.co'
 
@@ -96,7 +95,12 @@ const HandleRedirect = async () => {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

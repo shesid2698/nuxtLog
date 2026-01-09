@@ -14,5 +14,8 @@ export default defineNuxtConfig({
     public: {
       rsaPublicKey: process.env.NUXT_PUBLIC_RSA_PUBLIC_KEY
     }
+  },
+  imports:{
+    dirs:['types/**','utils/**']
   }
 })
